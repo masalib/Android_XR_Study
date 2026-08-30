@@ -1045,8 +1045,36 @@ minSdk 24  ≦  端末 34  ≦  compileSdk 37
 
 ### 課題1：文字を変えてみる（5分）
 
-`MainActivity.kt` の `Greeting(name = "Android")` を
+`MainActivity.kt` の **`onCreate` の中にある** `Greeting(name = "Android")` を
 `Greeting(name = "世界")` に変えて、実機で確認する。
+
+> **⚠️ 注意：`Greeting(name = "Android")` はファイル内に2か所あります。**
+>
+> ```kotlin
+> // ① onCreate の中（setContent ブロック）★こちらを変える
+> setContent {
+>     MaterialTheme {
+>         Surface(...) {
+>             Greeting(name = "Android")      // ← 実機の画面に出るのはこちら
+>         }
+>     }
+> }
+>
+> // ② GreetingPreview() の中
+> @Preview(showBackground = true)
+> @Composable
+> fun GreetingPreview() {
+>     MaterialTheme {
+>         Greeting(name = "Android")          // ← 変えても実機には影響しない
+>     }
+> }
+> ```
+>
+> **`@Preview` が付いた関数は Android Studio のプレビュー表示専用**で、
+> アプリの実行には一切関与しません（SwiftUI の `PreviewProvider` と同じ）。
+> ②を変えても実機の表示は変わりません。
+
+**必ずファイルを保存してから**ビルドしてください。
 
 ```bash
 cd ~/Person_Development/android/Android_XR_Study
@@ -1054,6 +1082,27 @@ cd ~/Person_Development/android/Android_XR_Study
 ```
 
 **確認すること：** ビルド → インストールの一連の流れが自分で回せること。
+
+#### 反映されたかどうかの見分け方
+
+ビルドログの最終行を見てください。
+
+```
+37 actionable tasks: 12 executed, 25 up-to-date    ← ✅ 再コンパイルされた
+37 actionable tasks: 1 executed, 36 up-to-date     ← ❌ 何も変わっていない
+```
+
+**`1 executed` は「インストールしただけで、コンパイルは走っていない」という意味**です。
+Gradle がソースの変更を検知していないので、次を疑ってください。
+
+1. **エディタで保存していない**（一番多い）
+2. **別の場所を編集した**（上記の①と②の取り違えなど）
+3. 編集より前にビルドを実行してしまった
+
+`3-7` で説明した `UP-TO-DATE` の仕組みがそのまま効いています。
+**Gradle は入力が変わらないタスクを実行しません。**
+逆に言えば、**タスクが走らない＝入力が変わっていない証拠**なので、
+デバッグの手がかりとして使えます。
 
 ### 課題2：アプリ名を変えてみる（5分）
 
@@ -1065,7 +1114,7 @@ Manifest から実際に解決されていること。
 
 ### 課題3：LAUNCHER を外してみる（10分）※戻すこと
 
-`AndroidManifest.xml` の `<intent-filter>` ブロックを丸ごとコメントアウトして
+`app/src/main/AndroidManifest.xml` の `<intent-filter>` ブロックを丸ごとコメントアウトして
 インストールし、**ホーム画面からアイコンが消えること**を確認する。
 
 ```bash

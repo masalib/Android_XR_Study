@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import android.util.Log
 
 /**
  * Activity は iOS の UIViewController に相当します。
@@ -38,6 +39,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //ライフサイクルをログで出力する
+        Log.d("LIFECYCLE", "onCreate")
+
         // setContent が SwiftUI の body にあたる部分。
         // ここから先が宣言的 UI の世界です。
         setContent {
@@ -46,11 +50,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting(name = "Android")
+                    Greeting(name = "世界")
                 }
             }
         }
     }
+
+    //ライフサイクルをログで出力する
+    override fun onStart()   { super.onStart();   Log.d("LIFECYCLE", "onStart") }
+    override fun onResume()  { super.onResume();  Log.d("LIFECYCLE", "onResume") }
+    override fun onPause()   { super.onPause();   Log.d("LIFECYCLE", "onPause") }
+    override fun onStop()    { super.onStop();    Log.d("LIFECYCLE", "onStop") }
+    override fun onDestroy() { super.onDestroy(); Log.d("LIFECYCLE", "onDestroy") }
+
 }
 
 /**
@@ -90,6 +102,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview() {
     MaterialTheme {
-        Greeting(name = "Android")
+        Greeting(name = "世界")
     }
 }
