@@ -50,7 +50,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting(name = "世界")
+                    // Hello World の Greeting から、カウンター画面に差し替え
+                    CounterScreen()
                 }
             }
         }

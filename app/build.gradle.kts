@@ -55,6 +55,7 @@ kotlin {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)   // Compose から ViewModel を使う
     implementation(libs.androidx.activity.compose)
 
     // BOM を入れると、以降の compose 系ライブラリはバージョン指定不要になる
