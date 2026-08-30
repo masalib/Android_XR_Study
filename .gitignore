@@ -1,0 +1,17 @@
+# Gradle
+.gradle
+/build
+/app/build
+
+# SDK の絶対パスが入るため共有しない（PC ごとに異なる）
+/local.properties
+
+# IDE
+*.iml
+/.idea
+/captures
+.externalNativeBuild
+.cxx
+
+# macOS
+.DS_Store

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AndroidManifest.xml は iOS の Info.plist に相当する。
+  アプリの構成要素（Activity）と、必要な権限をここで OS に宣言する。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.XRStudy">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.XRStudy">
+
+            <!--
+              この intent-filter が「アプリの入口」を意味する。
+              MAIN + LAUNCHER の組み合わせで、ホーム画面にアイコンが出る。
+              これが無いと、インストールされてもアイコンが現れない。
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

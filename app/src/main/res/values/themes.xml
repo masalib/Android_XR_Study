@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose を使う場合、XML テーマは起動時の土台だけを担当する -->
+    <style name="Theme.XRStudy" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
