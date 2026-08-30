@@ -7,13 +7,17 @@ plugins {
 }
 
 android {
-    // アプリを一意に識別する名前空間。iOS の Bundle Identifier に相当。
+    // R / BuildConfig を生成する Kotlin パッケージのルート。
+    // Swift でいえば「モジュール名」に近い。iOS の Bundle Identifier に相当するのは
+    // 下の applicationId のほう。
     namespace = "com.example.xrstudy"
 
     // ★ ビルドに使う SDK のバージョン。新しい API を「書ける」上限。
     compileSdk = 37
 
     defaultConfig {
+        // 端末・ストア上でアプリを一意に識別する ID。
+        // これが iOS の Bundle Identifier に相当する。インストール後は変更不可。
         applicationId = "com.example.xrstudy"
 
         // ★ 動作する最低の Android バージョン。24 = Android 7.0

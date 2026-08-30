@@ -145,12 +145,17 @@ Xcode はビルド設定を GUI に隠していますが、Gradle は**全部テ
 
 ```kotlin
 android {
-    compileSdk = 37     // ← これは「代入」ではなく、実際にはメソッド呼び出し
+    compileSdk = 37     // DSL レシーバの compileSdk プロパティへの「代入」
 }
 ```
 
 `android { ... }` は **`android` という関数にラムダを渡している**Kotlin の構文です。
 SwiftUI の `VStack { ... }` と同じ形と思ってください。
+ラムダの中では「レシーバ」と呼ばれる設定用オブジェクトが `this` になっており、
+`compileSdk = 37` はそのプロパティへの代入です。
+
+> Groovy DSL では `compileSdk 37`（イコールなし）と書きますが、
+> あちらは**メソッド呼び出し**です。同じことを書いていても仕組みが違います。
 
 > **なぜこれを知っておくべきか**
 > エラーメッセージが「設定ミス」ではなく **Kotlin のコンパイルエラーや例外**として
@@ -165,7 +170,7 @@ Gradle には歴史的に2つの記法があります。
 
 | ファイル名 | 言語 | 状況 |
 |---|---|---|
-| `build.gradle` | **Groovy** | 古い。今も動くが新規では非推奨 |
+| `build.gradle` | **Groovy** | 現在もサポート対象。ただし新規では Kotlin DSL が選ばれることが多い |
 | `build.gradle.kts` | **Kotlin** | **現在の推奨。このプロジェクトはこちら** |
 
 同じことを書いても見た目が違います。
@@ -417,7 +422,9 @@ CocoaPods の `source 'https://cdn.cocoapods.org/'` に相当します。
 [versions]
 agp = "9.3.2"
 kotlin = "2.4.10"
+coreKtx = "1.19.0"
 composeBom = "2026.08.00"
+# …（実際のファイルにはもう数行あります）
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -496,6 +503,60 @@ Kotlin 側でドットなのは、`libs` オブジェクトのプロパティを
 > この対応が頭に入っていないと、`libs.` の後に何を書けばよいか分からなくなります。
 > **TOML のハイフンをドットに置き換えるだけ**、と覚えておけば十分です。
 
+#### 実践：新しいライブラリを追加する
+
+TOML の読み方が分かったところで、**書き足し方**を押さえておきます。
+Phase 2（カメラ）の最初の作業がまさにこれです。
+
+**手順は3ステップです。**
+
+```toml
+# ① gradle/libs.versions.toml の [versions] にバージョンを1行
+[versions]
+camerax = "1.5.0"
+
+# ② [libraries] に使うアーティファクトを列挙
+[libraries]
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+```
+
+```kotlin
+// ③ app/build.gradle.kts の dependencies に追加
+dependencies {
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+}
+```
+
+そのあと Gradle を同期（Android Studio なら「Sync Now」、CLI ならビルドするだけ）します。
+
+**最新バージョンの調べ方：**
+
+| 方法 | 使い方 |
+|---|---|
+| **AndroidX の公式リリースページ** | `developer.android.com/jetpack/androidx/releases/<ライブラリ名>` |
+| **Google Maven リポジトリ** | `maven.google.com` で検索 |
+| **CLI で確認** | `curl -s https://dl.google.com/dl/android/maven2/androidx/camera/camera-core/maven-metadata.xml \| grep version` |
+
+**依存の競合を調べる：**
+
+```bash
+./gradlew :app:dependencies
+```
+
+同じライブラリの違うバージョンが引き込まれている場合、Gradle は**新しい方に寄せます**。
+意図しないバージョンになっていないかはこのコマンドで確認できます。
+
+> `group` と `name` は、ライブラリの座標 `androidx.camera:camera-core:1.5.0` を
+> `:` で区切ったものです。3つ目のバージョンは `version.ref` で `[versions]` を参照します。
+
+---
+
 ### 4-3. `app/build.gradle.kts` ← 最重要
 
 ```kotlin
@@ -518,7 +579,7 @@ AGP 9.0 から **Kotlin のサポートが AGP に内蔵された**ため、
 
 ```kotlin
 android {
-    namespace = "com.example.xrstudy"   // iOS の Bundle Identifier に相当
+    namespace = "com.example.xrstudy"   // R / BuildConfig の生成先パッケージ
     compileSdk = 37
 
     defaultConfig {
@@ -539,8 +600,8 @@ android {
 
 | | 意味 |
 |---|---|
-| `namespace` | **コード上**のパッケージ名。`R` クラスの生成場所 |
-| `applicationId` | **端末上**でアプリを一意に識別する ID。インストール後は変更不可 |
+| `namespace` | **`R` / `BuildConfig` を生成する Kotlin パッケージ**のルート。Swift でいえばモジュール名に近い |
+| `applicationId` | **端末・ストア上**でアプリを一意に識別する ID。**iOS の Bundle Identifier に相当するのはこちら**。インストール後は変更不可 |
 
 今は同じ値ですが、別々にできます（例：法人向けと個人向けで applicationId だけ変える）。
 
@@ -663,7 +724,8 @@ android.nonTransitiveRClass=true
 ビルドが遅くなり、補完候補も汚れます。
 
 **`true` が現在の推奨**で、その場合ライブラリのリソースを使うときは
-`androidx.appcompat.R.string.xxx` のように**そのライブラリの `R` を明示**します。
+`androidx.compose.ui.R.string.xxx` のように**そのライブラリの `R` を明示**します
+（パッケージ名はそのライブラリの `namespace` に対応します）。
 
 ```kotlin
 dependencies {
@@ -791,7 +853,9 @@ class MainActivity : ComponentActivity() {
 ただし Android の `Activity` は**「アプリの入口」も兼ねます**。
 Manifest で LAUNCHER に指定されたものが最初に起動します。
 
-`ComponentActivity` は Compose を使うための基底クラスです。
+`ComponentActivity` は **AndroidX の汎用基底クラス**で、
+ViewModel、ActivityResult API（権限リクエストの土台）、戻るボタン処理を提供します。
+**Compose 専用ではありません。** `setContent` は `activity-compose` が追加している拡張関数です。
 
 ### `onCreate` は `viewDidLoad`
 
@@ -806,9 +870,17 @@ Manifest で LAUNCHER に指定されたものが最初に起動します。
 | `viewDidDisappear` | `onStop` |
 | `deinit` | `onDestroy` |
 
+> **⚠️ これらは「近い」だけで等価ではありません。**
+> 特に `onDestroy` は**呼ばれる保証がありません**（OS にプロセスを殺されるとスキップされます）。
+> また `onPause` / `onStop` は、iOS と違って「他アプリが前面に来た」「ダイアログが被さった」
+> でも起きます。
+
 ### ⚠️ iOS 経験者が最初につまずくポイント
 
-**画面を回転させると、この Activity は破棄されて `onCreate` から作り直されます。**
+**画面を回転させると、この Activity は「デフォルトでは」破棄されて `onCreate` から作り直されます。**
+
+> Manifest に `android:configChanges="orientation|screenSize"` を書けば抑止できますが、
+> 状態復元の設計から逃げることになり**非推奨**です。他所の記事で見かけても使わないでください。
 
 iOS の `UIViewController` は回転しても生き続けるので、ここが決定的に違います。
 Android では「言語設定の変更」「ダークモード切り替え」などでも同じことが起きます。
@@ -972,7 +1044,9 @@ Android 17 の新しい API をコードに書けます。**端末側の要件�
 
 **古い端末対応とは無関係**で、あくまで「新しい OS の挙動を受け入れるか」の宣言です。
 
-> Google Play に出す場合は targetSdk の下限が決められています（API 37 必須は 2027年8月から）。
+> Google Play に出す場合は targetSdk の下限が決められています
+> （「最新メジャーリリースから1年以内」が原則で、毎年8月末ごろに引き上げられます。
+>  正確な期日は Play Console の告知を確認してください）。
 > 今回はストア配布しないので急ぐ必要はありません。
 
 ### あなたの端末との関係
@@ -984,7 +1058,21 @@ minSdk 24  ≦  端末 34  ≦  compileSdk 37
               ↑ ここに入っているのでインストールできる
 ```
 
-`compileSdk 37` でビルドしても、`minSdk 24` なので API 34 の端末で問題なく動きます。
+**インストールできるかどうかを決めるのは `minSdk` だけ**で、`compileSdk` は無関係です。
+
+本当に注意すべきなのは別のことです。`compileSdk 37` にすると **API 37 の新しい API を書けてしまう**ため、
+それを API 34 の端末で実行すると `NoSuchMethodError` で落ちます。
+
+```kotlin
+// 新しい API を使うときは実行時に分岐する
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+    // 新しい API
+} else {
+    // 古い端末向けの代替
+}
+```
+
+Android Studio の Lint が `NewApi` として警告してくれるので、**警告を無視しないこと**が実務上の防御になります。
 
 ---
 
@@ -995,9 +1083,15 @@ minSdk 24  ≦  端末 34  ≦  compileSdk 37
 | ファイル | 展開後サイズ | 正体 |
 |---|---|---|
 | `classes.dex` | 約 18MB | **Compose と Kotlin のランタイム** |
-| `classes5.dex` | 約 10MB | 同上（DEX は 1ファイル 64K メソッドの上限があり分割される） |
+| `classes5.dex` | 約 10MB | 同上（1 DEX あたり**メソッド参照** 65,536 個の上限があり分割される） |
 | `resources.arsc` | 約 474KB | コンパイル済みリソース |
+| `lib/arm64-v8a/*.so` ほか | わずか | **ネイティブライブラリ**（CPU アーキテクチャごとに同梱） |
 | その他 | わずか | ライセンス表記など |
+
+> **`lib/` の中にある `.so` はネイティブコード**です。CPU アーキテクチャ（ABI）ごとに
+> 別々のファイルが入っており、実機（arm64-v8a）とエミュレータ（x86_64）で使うものが違います。
+> 今はごく小さいですが、**Phase 2 で OpenCV を入れると APK が一気に膨らむ**のはここです。
+> そのとき `abiFilters` で対象 ABI を絞る、という調整が必要になります。
 
 **あなたが書いたコードは 100行程度で、ほぼ全部が Jetpack Compose のライブラリです。**
 
@@ -1042,6 +1136,19 @@ minSdk 24  ≦  端末 34  ≦  compileSdk 37
 ## 11. 手を動かして確かめる
 
 理解を定着させるための課題です。**上から順にやってください。**
+
+> **📌 このドキュメントの対象コードについて**
+>
+> このドキュメントは **Hello World の時点のコード**（タグ `phase-0-complete`）を解説しています。
+> その後の学習で `MainActivity` は `CounterScreen()` を表示するよう変更されたため、
+> 現在の `main` ブランチのコードとは一部異なります。
+>
+> 当時の状態を見たいときは次のようにしてください。
+>
+> ```bash
+> git checkout phase-0-complete   # Hello World の時点に戻る
+> git checkout main               # 最新に戻る
+> ```
 
 ### 課題1：文字を変えてみる（5分）
 
