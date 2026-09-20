@@ -3,12 +3,12 @@ package com.example.xrstudy
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import android.util.Log
+import com.example.xrstudy.ui.XrStudyApp
+import com.example.xrstudy.ui.theme.XRStudyTheme
 
 /**
  * Activity は iOS の UIViewController に相当します。
@@ -45,17 +47,19 @@ class MainActivity : ComponentActivity() {
         //ライフサイクルをログで出力する
         Log.d("LIFECYCLE", "MainActivity onCreate")
 
+        // 画面を端末の端（ステータスバー・ナビゲーションバーの裏）まで広げる。
+        // Android 15 以降は targetSdk 35 以上で強制されるが、
+        // 呼んでおくと、ライト／ダークに合わせてバーの文字色も自動で切り替わる。
+        // 端に隠れないようにする余白は、Scaffold の innerPadding が面倒を見てくれる。
+        enableEdgeToEdge()
+
         // setContent が SwiftUI の body にあたる部分。
         // ここから先が宣言的 UI の世界です。
         setContent {
-            MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    // Hello World の Greeting から、カウンター画面に差し替え
-                    CounterScreen()
-                }
+            // Phase 2: テーマで包み、Scaffold の骨組みを表示する。
+            // （Phase 1 の CounterScreen は、phase-1-complete タグで見られる）
+            XRStudyTheme {
+                XrStudyApp()
             }
         }
     }
