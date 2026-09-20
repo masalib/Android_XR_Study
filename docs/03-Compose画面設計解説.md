@@ -97,6 +97,85 @@ Android 12 以降は、壁紙から色を自動生成する「ダイナミック
 ただし `minSdk = 24` の今回は、Android 11 以下でも同じ見た目になるよう、
 **固定の配色を自分で定義する**方法にしています。
 
+#### 特定のページだけ色が違うとき
+
+デザインでは、「ここだけ違う色」というページが出てきます。
+その場合は、**共通の `ColorScheme` を土台にして、違う役割だけを上書きします**。
+スキーマを丸ごと作り直すわけではありません。
+
+上書きする範囲は、3段階あります。
+
+| 範囲 | 書き方 | 使いどころ |
+|---|---|---|
+| アプリ全体 | `XRStudyTheme`（Step 1 で作ったもの） | 基本の配色 |
+| **そのページだけ** | `MaterialTheme(colorScheme = ….copy(…)) { … }` | ページ単位で違うとき |
+| 部品1つだけ | `ButtonDefaults.buttonColors(containerColor = …)` など | 1つのボタンだけ色が違うとき |
+
+**ページ単位で違う場合：**
+
+```kotlin
+@Composable
+fun PromoScreen() {
+    MaterialTheme(
+        colorScheme = MaterialTheme.colorScheme.copy(   // 今のスキーマをコピーして…
+            primary = Color(0xFFE65100),                // …違う役割だけ上書き
+            onPrimary = Color.White,
+        )
+    ) {
+        // この中の Button などは、上書きした primary を使う。
+        // この外に出れば、元の primary に戻る。
+    }
+}
+```
+
+- 上書きした範囲だけに効き、ほかのページには影響しません。
+- **上書きしなかった役割は、外側のテーマをそのまま引き継ぎます**
+  （色だけでなく、文字スタイルと角の形も同じです。`MaterialTheme` の引数を省略すると、外側の値が使われます）。
+- 画面の中で色を直接書くのではなく、**テーマの中で役割の値を差し替える**ので、
+  `Button` や `Card` の色が自動で変わります。
+
+**端末の設定に関係なく、常にダークにしたい画面の場合：**
+
+カメラのプレビュー画面のような画面は、`XRStudyTheme` に `darkTheme` を渡します。
+
+```kotlin
+XRStudyTheme(darkTheme = true) {
+    CameraScreen()
+}
+```
+
+`XRStudyTheme` が `darkTheme` を引数で受け取る作りにしているのは、このためでもあります。
+Phase 7 のカメラでも、そのまま使えます。
+
+#### デザイナーさんと進めるとき
+
+1. **Figma 側で、Material 3 の役割名（`primary`、`surface` など）を使ってもらいます。**
+   Figma の Material Theme Builder プラグインを使うと、Kotlin の `Color.kt` に近い形で出力できます。
+   役割名が一致していれば、`Color.kt` に貼るだけで済みます。
+2. **ページごとの上書きは、最小限にします。** 増えるほど、アプリ全体の統一感が崩れます。
+   「そのページだけの例外か、別の役割として全体に足すべき色か」を、デザイナーさんに確認してください。
+3. **画面の中に `Color(0xFF…)` を直接書きません。**
+   色を直接書くと、デザイナーさんが色を変えたときに、画面のコードを1つずつ探して直すことになります。
+   **色の値は `ui/theme/` の中だけに置き**、画面は役割の名前で指定します。
+
+#### Material 3 の役割にない色（成功の緑、警告の黄など）
+
+Material 3 の役割には、「成功」「警告」がありません。デザインにはこうした色が出てくるのが普通です。
+**近い役割に無理に割り当てず、テーマに追加の色を足します。**
+
+```kotlin
+@Immutable
+data class ExtraColors(val success: Color, val onSuccess: Color)
+
+val LocalExtraColors = staticCompositionLocalOf { ExtraColors(Color.Unspecified, Color.Unspecified) }
+
+// XRStudyTheme の中で CompositionLocalProvider(LocalExtraColors provides …) { … } として渡す。
+// 使う側は LocalExtraColors.current.success と書く。
+```
+
+`MaterialTheme` が色を配下に渡している仕組み（CompositionLocal。1-4 で説明します）と同じです。
+今の Phase 2 のモックには必要ないので、実際に必要になったときに足します。
+
 ### 1-3. 文字スタイルは「役割」と `sp`
 
 文字も同じく、`headline` / `title` / `body` / `label` という役割で名前が付いています。
