@@ -15,3 +15,7 @@
 
 # macOS
 .DS_Store
+
+# docsの作業ファイル
+/docs/temp/
+/docs/roadmap/
