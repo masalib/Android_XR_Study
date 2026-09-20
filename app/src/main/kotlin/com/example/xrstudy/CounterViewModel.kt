@@ -19,7 +19,9 @@ import androidx.lifecycle.ViewModel
  * UIViewController が回転で死なないので、必要がなかったためです。
  *
  * ■ いつ破棄されるのか
- *   「画面が本当に終了したとき」だけです（戻るボタンで閉じる、finish() など）。
+ *   「画面が本当に終了したとき」だけです（finish() が呼ばれたときなど）。
+ *   Android 12 以降は、最初の画面で戻るボタンを押しても Activity は終了しないので、
+ *   破棄されません（バックグラウンドへ移るだけ）。
  *   そのタイミングで onCleared() が呼ばれます。
  */
 class CounterViewModel : ViewModel() {
@@ -37,9 +39,12 @@ class CounterViewModel : ViewModel() {
 
     fun increment() {
         count++
+        // ログは count++ の「後」に書く。前に書くと増える前の値が出てしまう。
+        android.util.Log.d("LIFECYCLE", "CounterViewModel.increment  ← count=$count")
     }
 
     fun reset() {
+        android.util.Log.d("LIFECYCLE", "CounterViewModel.reset  ← count がリセット")
         count = 0
     }
 

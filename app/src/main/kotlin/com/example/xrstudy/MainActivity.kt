@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         //ライフサイクルをログで出力する
-        Log.d("LIFECYCLE", "onCreate")
+        Log.d("LIFECYCLE", "MainActivity onCreate")
 
         // setContent が SwiftUI の body にあたる部分。
         // ここから先が宣言的 UI の世界です。
@@ -61,11 +61,11 @@ class MainActivity : ComponentActivity() {
     }
 
     //ライフサイクルをログで出力する
-    override fun onStart()   { super.onStart();   Log.d("LIFECYCLE", "onStart") }
-    override fun onResume()  { super.onResume();  Log.d("LIFECYCLE", "onResume") }
-    override fun onPause()   { super.onPause();   Log.d("LIFECYCLE", "onPause") }
-    override fun onStop()    { super.onStop();    Log.d("LIFECYCLE", "onStop") }
-    override fun onDestroy() { super.onDestroy(); Log.d("LIFECYCLE", "onDestroy") }
+    override fun onStart()   { super.onStart();   Log.d("LIFECYCLE", "MainActivity onStart") }
+    override fun onResume()  { super.onResume();  Log.d("LIFECYCLE", "MainActivity onResume") }
+    override fun onPause()   { super.onPause();   Log.d("LIFECYCLE", "MainActivity onPause") }
+    override fun onStop()    { super.onStop();    Log.d("LIFECYCLE", "MainActivity onStop") }
+    override fun onDestroy() { super.onDestroy(); Log.d("LIFECYCLE", "MainActivity onDestroy") }
 
 }
 
