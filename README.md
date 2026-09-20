@@ -11,9 +11,16 @@ iOS / PHP の開発経験はあるが Android は未経験、という状態か�
 | Phase | 内容 | 状態 |
 |---|---|---|
 | **0** | 手持ち端末の確認・開発環境の構築 | ✅ 完了 |
-| **1** | Android の最低ライン（Kotlin / Compose / ライフサイクル） | 🔄 進行中 |
-| 2 | カメラ（CameraX / OpenCV）※最重要 | ⏳ |
-| 3 | Android XR（projected context / Compose Glimmer） | ⏳ |
+| **1** | Android の最低ライン（Kotlin / Compose / ライフサイクル / 状態管理） | ✅ 完了 |
+| **2** | Compose による画面設計・ナビゲーション | 🔄 進行中 |
+| 3 | MVVM を使った画面の状態管理 | ⏳ |
+| 4 | データ保存と内部 DB の CRUD（DataStore / Room） | ⏳ |
+| 5 | API を使った CRUD | ⏳ |
+| 6 | ログイン・認証 | ⏳ |
+| 7 | カメラ（CameraX / OpenCV）※最重要 | ⏳ |
+| 8 | Android XR（projected context / Compose Glimmer） | ⏳ |
+
+詳細は [Android 学習ロードマップ](docs/roadmap/01-Android学習ロードマップ.md) を参照してください。
 
 各フェーズの完了時点には `phase-N-complete` のタグを打っています。
 
