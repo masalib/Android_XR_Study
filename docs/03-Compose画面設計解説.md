@@ -11,8 +11,8 @@ Step ごとに解説します。Step が進むたびに、この下へ追記し�
 
 | Step | 内容 | 状態 |
 |---|---|---|
-| **1** | **テーマと骨組み**（`ColorScheme` / `Typography` / ライト・ダーク / `Scaffold`） | ✅ このドキュメント |
-| 2 | 静的な3画面（`@Preview` で通常・長い文字列・空状態を確認） | ⏳ |
+| **1** | **テーマと骨組み**（`ColorScheme` / `Typography` / ライト・ダーク / `Scaffold`） | ✅ |
+| **2** | **静的な3画面**（`@Preview` で通常・長い文字列・空状態を確認） | ✅ このドキュメント |
 | 3 | 下部ナビゲーションと画面遷移（`NavigationBar` / `NavHost`） | ⏳ |
 | 4 | ホームの横スクロールバナー（`HorizontalPager`） | ⏳ |
 | 5 | ユーザー一覧（`TabRow` / `LazyColumn`、空・読み込み中・エラー表示） | ⏳ |
@@ -30,7 +30,7 @@ app/src/main/
 │   ├─ MainActivity.kt          ← setContent を XRStudyTheme { XrStudyApp() } に差し替え
 │   └─ ui/
 │       ├─ XrStudyApp.kt        ← Scaffold + Top App Bar（アプリの一番外側）
-│       ├─ ThemeShowcase.kt     ← テーマの確認用画面（Step 2 で置き換わる）
+│       ├─ ThemeShowcase.kt     ← テーマの確認用画面（Step 2 以降は、画面上部のスイッチの「テーマ」で表示）
 │       └─ theme/
 │           ├─ Color.kt         ← ライト／ダークの配色
 │           ├─ Type.kt          ← 文字スタイル
@@ -371,7 +371,8 @@ SwiftUI の `.environment(...)` と `@Environment` に近い考え方です。
 Scaffold(
     topBar = { CenterAlignedTopAppBar(title = { Text("XR Study") }) }
 ) { innerPadding ->
-    ThemeShowcase(modifier = Modifier.padding(innerPadding))
+    // Step 2 以降は、本文を Column で包み、その Column に innerPadding を渡している
+    Column(modifier = Modifier.padding(innerPadding)) { … }
 }
 ```
 
@@ -473,6 +474,10 @@ SH-51C（Android 14）で、ライトとダークの両方を確認しました�
 
 ## 手を動かして確かめる（Step 1）
 
+> **Step 2 以降は、画面上部のスイッチで画面を選びます。**
+> 課題1〜3の確認用画面（`ThemeShowcase`）は、スイッチの**「テーマ」**を選ぶと表示されます。
+> 課題4は、スイッチの位置が変わるので、Step 2 の構成に合わせた書き方に直してあります。
+
 ### 課題1：`primary` の色を変える（5分）※戻すこと
 
 `Color.kt` の `LightColorScheme` の `primary` を変えます。
@@ -540,28 +545,367 @@ Text("labelLarge  ボタンの文字", style = type.labelLarge, color = Color.Bl
 
 ### 課題4：`innerPadding` を渡さない（5分）※戻すこと
 
-`XrStudyApp.kt` を次のように変えます。
+`XrStudyApp.kt` の、`innerPadding` を渡している行を変えます。
 
 ```kotlin
 { innerPadding ->
-    ThemeShowcase()   // Modifier.padding(innerPadding) を外す
+    Column {   // Modifier.padding(innerPadding) を外す
+        …
+    }
 }
 ```
 
-アプリを入れ直して（`./gradlew installDebug`）、開き直してください。
-**画面を一番上までスクロールして戻した状態**で、次の2か所を見ます（SH-51C・Android 14 で確認）。
+アプリを入れ直して（`./gradlew installDebug`）、開き直してください（SH-51C・Android 14 で確認）。
 
-- **上：** 先頭の「Typography（文字スタイル）」と「headlineSmall 見出し」が、
-  Top App Bar の裏に隠れて見えなくなります。表示が「titleLarge」から始まります。
-- **下：** 画面の下端に見えている `Button` の行が、
-  ナビゲーションバー（戻る・ホーム・履歴の3つのボタン）と重なります。
+- **上：** 画面を切り替えるスイッチ（テーマ／ホーム／一覧／設定）が、
+  Top App Bar の裏に隠れて、**見えなくなります**。
+- **上：** ホームのバナーの上の端も、バーに隠れて切れます。
 
 コンパイルは通ってしまうので、気づきにくい間違いです。
 「`Scaffold` の中身では、必ず `innerPadding` を使う」と覚えてください。
 
-> **⚠️ 変化が見えないときは、次の2つを確認してください。**
+> **⚠️ 変化が見えないときは、アプリを入れ直していない可能性があります。**
+> コードを直しただけでは、実機の画面は変わりません。
 >
-> - アプリを入れ直していない（コードを直しただけでは、実機の画面は変わりません）
-> - スクロール位置が一番上ではない（上の変化は、一番上に戻さないと見えません）
+> **Step 1 のとき（`ThemeShowcase` だけを表示していた構成）は、** 先頭の2行が隠れ、
+> 下端の `Button` の行がナビゲーションバーと重なる、という見え方でした。
+> 画面の構成によって、見え方は変わります。
+
+確認したら元に戻してください。
+
+---
+
+## Step 2：静的な3画面
+
+「ホーム／ユーザー一覧／設定」の3画面を、**データを固定値にして**作ります。
+画面の切り替え（下部ナビゲーション）は Step 3、バナーの横スクロールは Step 4、
+一覧のタブと読み込み中・エラー表示は Step 5、スイッチを動かすのは Step 6 で作ります。
+
+### 2-1. 何を作ったのか
+
+```
+ui/
+├─ XrStudyApp.kt          ← 画面を切り替える仮のスイッチを追加
+├─ SampleData.kt          ← 固定のデータ（お知らせ・ユーザー）
+├─ PreviewSupport.kt      ← @Preview 用の共通の枠（PreviewFrame）
+├─ model/Models.kt        ← データの型（Notice, User）
+├─ components/Components.kt  ← 複数の画面で使う部品（SectionHeader, EmptyState）
+├─ home/HomeScreen.kt     ← バナー（場所取り）+ お知らせ
+├─ users/UserListScreen.kt ← ユーザー一覧
+└─ settings/SettingsScreen.kt ← 設定
+```
+
+**画面ごとにフォルダを分けています**（`home/`、`users/`、`settings/`）。
+ファイルの種類（画面だけ・部品だけ）ではなく、**機能で分ける**と、
+「ホームを直したい」ときに、`home/` の中だけを見ればよくなります。
+
+### 2-2. 画面は「データを引数で受け取る」だけ
+
+```kotlin
+@Composable
+fun HomeScreen(
+    notices: List<Notice>,        // ← データは引数で受け取る
+    modifier: Modifier = Modifier,
+)
+```
+
+`HomeScreen` は、データの出どころ（固定値なのか、通信なのか）を**知りません**。
+渡されたものを表示するだけです。Phase 1 の `CounterCard` が、`count` を引数で受け取っていたのと同じ
+**state hoisting（状態を上に持たせる）** の考え方です。
+
+この作りだと、**同じ画面に、違うデータを渡して確認できます**。
+
+```kotlin
+HomeScreen(notices = SampleData.notices)               // 通常
+HomeScreen(notices = listOf(SampleData.longNotice) + …) // 長い文字列
+HomeScreen(notices = emptyList())                       // 空状態
+```
+
+`@Preview` で「通常・長い文字列・空状態」を並べて確認できるのは、このためです。
+**画面の中で `SampleData` を直接読んでいたら、この確認はできません。**
+
+`SampleData.kt` は、「固定のデータを、1か所に集める」ためのファイルです。
+Phase 4 以降で、通信やデータベースから取ってくるようになったとき、
+画面のコードは変えずに、**データの渡し方だけを変えれば済みます**。
+
+### 2-3. 一覧の1行は `ListItem`
+
+```kotlin
+ListItem(
+    leadingContent = { Avatar(…) },                  // 左（アイコン・画像）
+    headlineContent = { Text(user.name) },           // 主題
+    supportingContent = { Text(user.email) },        // 補足
+    trailingContent = { Switch(…) },                 // 右（スイッチ・値）
+)
+```
+
+`ListItem` は、Material 3 の**「一覧の1行」の部品**です。
+4つの場所に中身を渡すだけで、余白・文字スタイル・色が自動で決まります
+（`headline` は `bodyLarge`、`supporting` は `bodyMedium` など）。使わない場所は省略できます。
+
+SwiftUI の `List` の中の行（`HStack` を自分で組む代わりの、決まった形の行）に近い部品です。
+
+#### 丸いアバター（画像の代わり）
+
+```kotlin
+Surface(
+    shape = CircleShape,
+    color = MaterialTheme.colorScheme.secondaryContainer,
+    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    modifier = Modifier.size(40.dp)
+) {
+    Box(contentAlignment = Alignment.Center) { Text(initial) }
+}
+```
+
+`Surface` に「背景色（`color`）」と「中の文字色（`contentColor`）」を渡しています。
+中の `Text` は色を書かなくても、`contentColor` で描かれます（1-2 の「背景と文字はペア」）。
+背景が `secondaryContainer`、文字が `onSecondaryContainer` という、**ペアの組み合わせ**です。
+
+#### 設定のスイッチ
+
+```kotlin
+Switch(checked = checked, onCheckedChange = null)
+```
+
+`onCheckedChange = null` は、「押されても何もしない（表示専用）」という指定です。
+今の Step 2 では、見た目だけを作るので、これで足ります。
+押したら切り替わるようにする（Step 6）には、状態（`checked`）と、押されたときの処理を、
+**親から受け取る形**にします。`CounterCard` の `count` と `onIncrement` と同じ形です。
+
+### 2-4. 「長い文字列」と「空状態」を最初から作る
+
+見た目を作るとき、**固定のきれいなデータだけで確認すると、あとで崩れます。**
+実際のデータは、こちらの都合の長さでは来ません。
+
+#### 長い文字列：`maxLines` と `overflow`
+
+```kotlin
+Text(text = user.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+```
+
+| 指定 | 動き |
+|---|---|
+| なし | 長いと何行にも折り返す。行の高さがバラバラになる |
+| `maxLines = 1` + `Ellipsis` | 1行に収まらない分を「…」で省略する |
+
+**どこを1行にして、どこを折り返すかは、デザインの指定次第**です。
+
+- ユーザー一覧の名前・メール：1行で省略（行の高さをそろえたい）
+- ホームのお知らせのタイトル：2行まで（意味が伝わるように、少し余裕を持たせる）
+
+SwiftUI の `.lineLimit(1)` と `.truncationMode(.tail)` に相当します。
+
+#### 空状態：`EmptyState`
+
+```kotlin
+if (users.isEmpty()) {
+    EmptyState("ユーザーがいません")
+} else {
+    users.forEach { user -> UserRow(user) }
+}
+```
+
+データが 0 件のとき、何も出さないと**画面が真っ白**になり、壊れたように見えます。
+「今は 0 件です」と伝える表示を、最初から用意します。
+
+SwiftUI の `ContentUnavailableView`（iOS 17 以降）に相当します。
+
+#### 名前が空でも落ちないようにする
+
+```kotlin
+Text(text = initial.firstOrNull()?.toString() ?: "?")
+```
+
+`first()` は、文字列が空だと**例外でアプリが落ちます**。
+`firstOrNull()` は、空なら `null` を返すので、`?: "?"` で代わりの文字を出せます。
+**外から来るデータは、空・長い・欠けている、が起こりうる**という前提で書きます。
+
+### 2-5. ⚠️ `Column` + `verticalScroll` + `forEach` は、件数が少ないときだけ
+
+```kotlin
+Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+    users.forEach { user -> UserRow(user) }
+}
+```
+
+この書き方は、**画面に見えない行まで、全部作ってしまいます。**
+5件なら問題ありませんが、1000件になると、起動が遅くなり、メモリも使います。
+
+Step 5 で、**見えている行だけを作る `LazyColumn`** に置き換えます。
+（SwiftUI の `List` が、見えている行だけを作るのと同じです）
+
+### 2-6. `@Preview` を「通常・長い文字列・空状態・ダーク」で並べる
+
+```kotlin
+@Preview(name = "通常", showBackground = true, heightDp = 560)
+@Composable
+private fun UserListScreenPreview() {
+    PreviewFrame { UserListScreen(users = SampleData.users) }
+}
+
+@Preview(name = "空状態", showBackground = true, heightDp = 560)
+@Composable
+private fun UserListScreenEmptyPreview() {
+    PreviewFrame { UserListScreen(users = emptyList()) }
+}
+```
+
+- `PreviewFrame` は、テーマ（`XRStudyTheme`）と背景色を付ける共通の枠です（`PreviewSupport.kt`）。
+  **テーマで包まないと、Preview では色や文字が Material の初期値になります。**
+- `heightDp` は、Preview の高さです。指定しないと、中身の高さに縮みます。
+- Preview 関数は `private` にして、アプリ本体から呼ばれないようにします。
+
+Android Studio では、1つのファイルの Preview が**縦に並んで**表示されます。
+実機やエミュレーターを動かさずに、4つの状態を一度に見比べられます。
+SwiftUI の `#Preview` を、複数並べるのと同じ使い方です。
+
+### 2-7. 画面を切り替える仮のスイッチ
+
+Step 3 で下部ナビゲーションを作るまでは、実機で3画面を見るための**仮のスイッチ**を付けています。
+
+```kotlin
+var selectedIndex by rememberSaveable { mutableIntStateOf(Screen.Home.ordinal) }
+
+when (Screen.entries[selectedIndex]) {
+    Screen.Theme -> ThemeShowcase(…)
+    Screen.Home -> HomeScreen(notices = SampleData.notices, …)
+    Screen.Users -> UserListScreen(users = SampleData.users, …)
+    Screen.Settings -> SettingsScreen(appVersion = SampleData.APP_VERSION, …)
+}
+```
+
+- **選択中の画面を `rememberSaveable` で持っています。** 回転しても、選んだ画面が残ります
+  （Phase 1 の使い分けの実践です。選択中のタブのような「消えると困る、小さな値」に向いています）。
+  `enum` をそのまま保存せず、位置の `Int` で持つと、簡単に保存できます。
+- **`when` は、`enum` の全ての値を書かないとコンパイルエラーになります。**
+  画面を足したときに、書き忘れに気づけます。
+- **`Modifier.weight(1f)`** は、「残りの高さを使い切る」指定です。
+  スイッチの下の領域を、画面が埋めます。
+
+このスイッチは、Step 3 で `NavigationBar` と `NavHost` に置き換えます。
+
+### 2-8. 実機で確認した結果
+
+SH-51C（Android 14）で確認しました。長い文字列と空状態は、`XrStudyApp.kt` のデータを一時的に
+差し替えて、実機の画面で確認しました（`@Preview` ではなく、実機の表示です）。
+
+| 確認したこと | 結果 |
+|---|---|
+| 3画面の表示 | ホーム・一覧・設定とも表示された。下端もナビゲーションバーと重ならない |
+| 長い文字列（ホーム） | お知らせのタイトルが2行に折り返した |
+| 長い文字列（一覧） | 名前とメールが1行で「…」に省略された |
+| 空状態 | 「お知らせはありません」「ユーザーがいません」が表示された |
+| 回転（横向き） | 選んだ「一覧」が残った。右側のナビゲーションバーを避けて表示された |
+
+### 2-9. iOS との比較
+
+| 観点 | iOS（SwiftUI） | Android（Compose） |
+|---|---|---|
+| 一覧の1行 | `List` の中の行（`HStack` など） | `ListItem` |
+| 長い文字の省略 | `.lineLimit(1)` + `.truncationMode(.tail)` | `maxLines = 1` + `overflow = Ellipsis` |
+| 0 件の表示 | `ContentUnavailableView` | 自分で作る（`EmptyState`） |
+| スイッチ | `Toggle` | `Switch` |
+| 複数の状態のプレビュー | `#Preview` を複数並べる | `@Preview` を複数並べる |
+| 画面にデータを渡す | イニシャライザの引数 | 関数の引数（state hoisting） |
+
+---
+
+## 手を動かして確かめる（Step 2）
+
+### 課題1：長い文字列を表示する（5分）※戻すこと
+
+`XrStudyApp.kt` の、ホームとユーザー一覧に渡しているデータを変えます。
+
+```kotlin
+Screen.Home -> HomeScreen(
+    notices = listOf(SampleData.longNotice) + SampleData.notices,
+    …
+)
+Screen.Users -> UserListScreen(
+    users = listOf(SampleData.longUser) + SampleData.users,
+    …
+)
+```
+
+アプリを入れ直して確認してください。
+
+- ホーム：長いタイトルが**2行**に折り返す
+- 一覧：長い名前とメールが**1行で「…」に省略**される
+
+次に、`HomeScreen.kt` の `NoticeRow` の `maxLines = 2` を `1` に変えます。
+ホームの長いタイトルも、1行で省略されます。
+**`maxLines` を消す**と、何行でも折り返します。
+
+確認したら元に戻してください。
+
+### 課題2：空状態を表示する（3分）※戻すこと
+
+同じ場所を、`emptyList()` に変えます。
+
+```kotlin
+notices = emptyList()
+users = emptyList()
+```
+
+「お知らせはありません」「ユーザーがいません」が表示されます。
+**画面のコードは変えず、渡すデータだけを変えた**点に注目してください。
+
+確認したら元に戻してください。
+
+### 課題3：データを足す（3分）※戻すこと
+
+`SampleData.kt` の `users` に、1人足します。
+
+```kotlin
+User(6, "伊藤 由美", "yumi.ito@example.com"),
+```
+
+一覧に、1行増えます。**画面のコードは1文字も変えていません。**
+データを足すだけで画面が変わる、というのが「画面はデータを受け取るだけ」の利点です。
+
+確認したら元に戻してください。
+
+### 課題4：名前が空のユーザーで落とす（5分）※戻すこと
+
+**「外から来るデータは、空でもありうる」を体験します。**
+
+1. `SampleData.kt` の `users` に、名前が空のユーザーを足します。
+
+   ```kotlin
+   User(6, "", "no-name@example.com"),
+   ```
+
+2. アプリを入れ直します。一覧に、「?」の丸が出ます（`firstOrNull` のおかげで落ちません）。
+
+3. 次に、`UserListScreen.kt` の `Avatar` の中を、`first()` に変えます。
+
+   ```kotlin
+   text = initial.first().toString()   // firstOrNull()?.toString() ?: "?" から変更
+   ```
+
+4. アプリを入れ直して、一覧を開きます。**アプリが落ちます。**
+   `adb logcat` で `NoSuchElementException` を確認してください。
+
+確認したら、`firstOrNull` の形と、追加したユーザーを元に戻してください。
+
+### 課題5：`@Preview` を見る（10分）
+
+Android Studio で、次のファイルを開き、右上の「Split」または「Design」を選びます。
+
+- `home/HomeScreen.kt`
+- `users/UserListScreen.kt`
+- `settings/SettingsScreen.kt`
+
+「通常」「長い文字列」「空状態」「ダーク」の Preview が、並んで表示されます。
+**実機を動かさずに**、状態を見比べられることを確認してください。
+
+### 課題6：回転して、選んだ画面が残ることを確認する（5分）※戻すこと
+
+1. スイッチで「一覧」を選び、端末を回転させる → **「一覧」のまま**です
+2. `XrStudyApp.kt` の `rememberSaveable` を `remember` に変えて、入れ直す
+3. 「一覧」を選び、端末を回転させる → **「ホーム」に戻ります**
+
+Phase 1 の課題1と同じ結果です。**選択中のタブのような、消えると困る値は `rememberSaveable`** です。
 
 確認したら元に戻してください。
