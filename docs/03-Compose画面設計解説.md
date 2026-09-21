@@ -12,8 +12,8 @@ Step ごとに解説します。Step が進むたびに、この下へ追記し�
 | Step | 内容 | 状態 |
 |---|---|---|
 | **1** | **テーマと骨組み**（`ColorScheme` / `Typography` / ライト・ダーク / `Scaffold`） | ✅ |
-| **2** | **静的な3画面**（`@Preview` で通常・長い文字列・空状態を確認） | ✅ このドキュメント |
-| 3 | 下部ナビゲーションと画面遷移（`NavigationBar` / `NavHost`） | ⏳ |
+| **2** | **静的な3画面**（`@Preview` で通常・長い文字列・空状態を確認） | ✅ |
+| **3** | **下部ナビゲーションと画面遷移**（`NavigationBar` / `NavHost`） | ✅ このドキュメント |
 | 4 | ホームの横スクロールバナー（`HorizontalPager`） | ⏳ |
 | 5 | ユーザー一覧（`TabRow` / `LazyColumn`、空・読み込み中・エラー表示） | ⏳ |
 | 6 | 設定と仕上げ（ダイアログ・Snackbar・テーマ切り替え・アクセシビリティ） | ⏳ |
@@ -30,7 +30,7 @@ app/src/main/
 │   ├─ MainActivity.kt          ← setContent を XRStudyTheme { XrStudyApp() } に差し替え
 │   └─ ui/
 │       ├─ XrStudyApp.kt        ← Scaffold + Top App Bar（アプリの一番外側）
-│       ├─ ThemeShowcase.kt     ← テーマの確認用画面（Step 2 以降は、画面上部のスイッチの「テーマ」で表示）
+│       ├─ ThemeShowcase.kt     ← テーマの確認用画面（Step 3 以降は、Top App Bar の (i) ボタンで表示）
 │       └─ theme/
 │           ├─ Color.kt         ← ライト／ダークの配色
 │           ├─ Type.kt          ← 文字スタイル
@@ -369,16 +369,17 @@ SwiftUI の `.environment(...)` と `@Environment` に近い考え方です。
 
 ```kotlin
 Scaffold(
-    topBar = { CenterAlignedTopAppBar(title = { Text("XR Study") }) }
+    topBar = { CenterAlignedTopAppBar(title = { Text("XR Study") }) },
+    bottomBar = { NavigationBar { … } }      // Step 3 で追加
 ) { innerPadding ->
-    // Step 2 以降は、本文を Column で包み、その Column に innerPadding を渡している
-    Column(modifier = Modifier.padding(innerPadding)) { … }
+    // 本文（Step 3 以降は NavHost）に innerPadding を渡している
+    NavHost(…, modifier = Modifier.padding(innerPadding)) { … }
 }
 ```
 
 `Scaffold` は、**Top App Bar・下部ナビゲーション・本文を並べる骨組み**です。
 SwiftUI の `NavigationStack` と `TabView` を合わせた外枠に近い役割です。
-下部ナビゲーションは、Step 3 で `bottomBar` に足します。
+下部ナビゲーションは、Step 3 で `bottomBar` に足しました。
 
 #### ★ `innerPadding` は必ず本文に渡す
 
@@ -474,9 +475,9 @@ SH-51C（Android 14）で、ライトとダークの両方を確認しました�
 
 ## 手を動かして確かめる（Step 1）
 
-> **Step 2 以降は、画面上部のスイッチで画面を選びます。**
-> 課題1〜3の確認用画面（`ThemeShowcase`）は、スイッチの**「テーマ」**を選ぶと表示されます。
-> 課題4は、スイッチの位置が変わるので、Step 2 の構成に合わせた書き方に直してあります。
+> **Step 3 以降は、Top App Bar の (i) ボタンで「テーマの確認」画面を開きます。**
+> 課題1〜3の確認用画面（`ThemeShowcase`）は、そこに表示されます（戻る矢印で、元の画面に戻れます）。
+> 課題4は、画面の構成が変わったので、Step 3 の構成に合わせた書き方に直してあります。
 
 ### 課題1：`primary` の色を変える（5分）※戻すこと
 
@@ -545,21 +546,20 @@ Text("labelLarge  ボタンの文字", style = type.labelLarge, color = Color.Bl
 
 ### 課題4：`innerPadding` を渡さない（5分）※戻すこと
 
-`XrStudyApp.kt` の、`innerPadding` を渡している行を変えます。
+`XrStudyApp.kt` の、`NavHost` に `innerPadding` を渡している行を変えます。
 
 ```kotlin
-{ innerPadding ->
-    Column {   // Modifier.padding(innerPadding) を外す
-        …
-    }
-}
+NavHost(
+    navController = navController,
+    startDestination = HomeRoute,
+    modifier = Modifier,   // Modifier.padding(innerPadding) を外す
+) { … }
 ```
 
 アプリを入れ直して（`./gradlew installDebug`）、開き直してください（SH-51C・Android 14 で確認）。
 
-- **上：** 画面を切り替えるスイッチ（テーマ／ホーム／一覧／設定）が、
+- **上：** ホームのバナーの上半分（「バナー」の文字）が、
   Top App Bar の裏に隠れて、**見えなくなります**。
-- **上：** ホームのバナーの上の端も、バーに隠れて切れます。
 
 コンパイルは通ってしまうので、気づきにくい間違いです。
 「`Scaffold` の中身では、必ず `innerPadding` を使う」と覚えてください。
@@ -567,9 +567,13 @@ Text("labelLarge  ボタンの文字", style = type.labelLarge, color = Color.Bl
 > **⚠️ 変化が見えないときは、アプリを入れ直していない可能性があります。**
 > コードを直しただけでは、実機の画面は変わりません。
 >
-> **Step 1 のとき（`ThemeShowcase` だけを表示していた構成）は、** 先頭の2行が隠れ、
-> 下端の `Button` の行がナビゲーションバーと重なる、という見え方でした。
-> 画面の構成によって、見え方は変わります。
+> **画面の構成によって、見え方は変わります。** 同じ「`innerPadding` を渡さない」間違いでも、
+>
+> - Step 1（`ThemeShowcase` だけを表示）：先頭の2行が隠れ、下端の `Button` の行がナビゲーションバーと重なった
+> - Step 2（仮のスイッチ）：スイッチが Top App Bar の裏に隠れた
+> - Step 3（今の構成）：バナーの上半分が隠れる
+>
+> という見え方でした（どれも実機で確認）。
 
 確認したら元に戻してください。
 
@@ -578,14 +582,15 @@ Text("labelLarge  ボタンの文字", style = type.labelLarge, color = Color.Bl
 ## Step 2：静的な3画面
 
 「ホーム／ユーザー一覧／設定」の3画面を、**データを固定値にして**作ります。
-画面の切り替え（下部ナビゲーション）は Step 3、バナーの横スクロールは Step 4、
-一覧のタブと読み込み中・エラー表示は Step 5、スイッチを動かすのは Step 6 で作ります。
+この Step の時点では、画面の切り替えは仮のスイッチです（Step 3 で下部ナビゲーションに置き換えました）。
+バナーの横スクロールは Step 4、一覧のタブと読み込み中・エラー表示は Step 5、
+スイッチを動かすのは Step 6 で作ります。
 
 ### 2-1. 何を作ったのか
 
 ```
 ui/
-├─ XrStudyApp.kt          ← 画面を切り替える仮のスイッチを追加
+├─ XrStudyApp.kt          ← 画面を切り替える仮のスイッチを追加（Step 3 で NavHost に置き換え済み）
 ├─ SampleData.kt          ← 固定のデータ（お知らせ・ユーザー）
 ├─ PreviewSupport.kt      ← @Preview 用の共通の枠（PreviewFrame）
 ├─ model/Models.kt        ← データの型（Notice, User）
@@ -760,30 +765,19 @@ Android Studio では、1つのファイルの Preview が**縦に並んで**表
 実機やエミュレーターを動かさずに、4つの状態を一度に見比べられます。
 SwiftUI の `#Preview` を、複数並べるのと同じ使い方です。
 
-### 2-7. 画面を切り替える仮のスイッチ
+### 2-7. 画面を切り替える仮のスイッチ（Step 3 で置き換え済み）
 
-Step 3 で下部ナビゲーションを作るまでは、実機で3画面を見るための**仮のスイッチ**を付けています。
+Step 2 の時点では、実機で3画面を見るために、画面上部に**仮のスイッチ**（`SegmentedButton`）を付け、
+選んだ画面を `rememberSaveable` で持ち、`when` で画面を切り替えていました。
 
-```kotlin
-var selectedIndex by rememberSaveable { mutableIntStateOf(Screen.Home.ordinal) }
+このスイッチは、Step 3 で `NavigationBar` と `NavHost` に置き換えました（後半の Step 3 を参照）。
+このときの書き方のうち、次の2つは、今も使える知識です。
 
-when (Screen.entries[selectedIndex]) {
-    Screen.Theme -> ThemeShowcase(…)
-    Screen.Home -> HomeScreen(notices = SampleData.notices, …)
-    Screen.Users -> UserListScreen(users = SampleData.users, …)
-    Screen.Settings -> SettingsScreen(appVersion = SampleData.APP_VERSION, …)
-}
-```
-
-- **選択中の画面を `rememberSaveable` で持っています。** 回転しても、選んだ画面が残ります
-  （Phase 1 の使い分けの実践です。選択中のタブのような「消えると困る、小さな値」に向いています）。
-  `enum` をそのまま保存せず、位置の `Int` で持つと、簡単に保存できます。
 - **`when` は、`enum` の全ての値を書かないとコンパイルエラーになります。**
-  画面を足したときに、書き忘れに気づけます。
+  値を足したときに、書き忘れに気づけます。
 - **`Modifier.weight(1f)`** は、「残りの高さを使い切る」指定です。
-  スイッチの下の領域を、画面が埋めます。
 
-このスイッチは、Step 3 で `NavigationBar` と `NavHost` に置き換えます。
+> Step 2 の時点の書き方は、`git show 4ac1cb2:app/src/main/kotlin/com/example/xrstudy/ui/XrStudyApp.kt` で確認できます。
 
 ### 2-8. 実機で確認した結果
 
@@ -818,14 +812,8 @@ SH-51C（Android 14）で確認しました。長い文字列と空状態は、`
 `XrStudyApp.kt` の、ホームとユーザー一覧に渡しているデータを変えます。
 
 ```kotlin
-Screen.Home -> HomeScreen(
-    notices = listOf(SampleData.longNotice) + SampleData.notices,
-    …
-)
-Screen.Users -> UserListScreen(
-    users = listOf(SampleData.longUser) + SampleData.users,
-    …
-)
+composable<HomeRoute> { HomeScreen(notices = listOf(SampleData.longNotice) + SampleData.notices) }
+composable<UsersRoute> { UserListScreen(users = listOf(SampleData.longUser) + SampleData.users) }
 ```
 
 アプリを入れ直して確認してください。
@@ -900,15 +888,375 @@ Android Studio で、次のファイルを開き、右上の「Split」または
 「通常」「長い文字列」「空状態」「ダーク」の Preview が、並んで表示されます。
 **実機を動かさずに**、状態を見比べられることを確認してください。
 
-### 課題6：回転して、選んだ画面が残ることを確認する（5分）※戻すこと
+### 課題6：回転して、選んだ画面が残ることを確認する
 
-1. スイッチで「一覧」を選び、端末を回転させる → **「一覧」のまま**です
-2. `XrStudyApp.kt` の `rememberSaveable` を `remember` に変えて、入れ直す
-3. 「一覧」を選び、端末を回転させる → **「ホーム」に戻ります**
+Step 3 で、選んだ画面を持つ仕組みが `rememberSaveable` から `NavController` に変わりました。
+この課題は、Step 3 の課題4（回転しても、選んだタブが残ること）に移しました。
 
-Phase 1 の課題1と同じ結果です。**選択中のタブのような、消えると困る値は `rememberSaveable`** です。
+---
+
+## Step 3：下部ナビゲーションと画面遷移
+
+Step 2 の仮のスイッチを、本物の**下部ナビゲーション**と**画面遷移（`NavHost`）** に置き換えます。
+主なテーマは、**戻るボタンを押したときの動き**と、**選んでいるタブを正しく表示すること**です。
+
+### 3-1. 何を作ったのか
+
+```
+gradle/libs.versions.toml、app/build.gradle.kts
+    ← 依存を追加（下の表）
+ui/
+├─ XrStudyApp.kt              ← Scaffold + NavigationBar + NavHost（仮のスイッチを削除）
+└─ navigation/
+    ├─ Routes.kt              ← 画面の宛先（HomeRoute など）
+    └─ TopLevelDestination.kt ← 下部ナビに並ぶ3画面（名前・アイコン・宛先）
+```
+
+| 追加した依存 | 役割 |
+|---|---|
+| `navigation-compose` 2.10.1 | `NavHost` / `NavController`（画面遷移） |
+| `material-icons-core` | アイコン（`Icons.Filled.Home` など）。**`material3` には含まれない**ので、別に必要（入れ忘れると `Icons` が見つからずコンパイルエラーになります） |
+| Kotlin の serialization プラグイン | 型安全なルート（`@Serializable`）に必要 |
+
+### 3-2. なぜ `NavHost`（Navigation Compose）にしたのか
+
+Compose の画面遷移には、2つのライブラリがあります。
+
+| | 書き方 | 安定版（2026-09 時点、Google Maven で確認） |
+|---|---|---|
+| Navigation Compose | `NavHost` + `NavController` | 2.10.1 |
+| Navigation 3 | `NavDisplay` + バックスタックを自分で持つ | 1.1.7 |
+
+**どちらも安定版があります。** このプロジェクトでは、次の理由で `NavHost` にしました。
+
+- ロードマップが `NavHost` を指定している
+- 下部ナビゲーションの「タブごとの状態の保存・復元」が、`navigate` の指定だけで書ける（3-7）
+- 公式ドキュメントの Compose ナビゲーションのページ（今回確認したもの）が、`NavHost` の書き方で書かれている
+
+Navigation 3 は、将来の選択肢です。公式ドキュメントが、新規のアプリにどちらを推奨しているかは、
+今回調べた範囲では読み取れませんでした。
+
+### 3-3. `NavHost` の3つの部品
+
+```kotlin
+val navController = rememberNavController()          // ① 今どこにいるか、どの順で来たかを持つ
+
+NavHost(                                             // ② 今の宛先の画面を表示する場所
+    navController = navController,
+    startDestination = HomeRoute,                    //    最初の宛先
+) {
+    composable<HomeRoute> { HomeScreen(…) }          // ③ 宛先ごとに、表示する画面を登録する
+    composable<UsersRoute> { UserListScreen(…) }
+}
+
+navController.navigate(UsersRoute)                   // 画面を移動する
+```
+
+| 部品 | 役割 |
+|---|---|
+| `NavController` | **バックスタック**（今までに開いた画面の履歴）を持つ。`navigate` で積み、`popBackStack` で戻る |
+| `NavHost` | バックスタックの一番上の宛先を、画面に表示する |
+| `composable<宛先>` | 「この宛先のときは、この画面を表示する」という登録 |
+
+`rememberNavController` は、**回転しても、バックスタックを保ちます**（課題4で確認します）。
+SwiftUI の `NavigationStack` と、その `path`（画面の履歴）に近い仕組みです。
+
+### 3-4. 宛先は「型」で書く（型安全なルート）
+
+```kotlin
+@Serializable
+object HomeRoute
+
+@Serializable
+object UsersRoute
+```
+
+画面の宛先を、`"home"` のような文字列ではなく、**型**（`@Serializable` の `object`）で表します。
+
+```kotlin
+navController.navigate(UsersRoute)          // ✅ 型で指定
+navController.navigate("usres")             // ❌ 文字列だと、打ち間違いに実行時まで気づけない
+```
+
+型なら、打ち間違いは**コンパイルエラー**になります。
+今回の宛先は、受け取る値（引数）が無いので `object` です。引数がある宛先は `data class` にします
+（例：`data class UserDetailRoute(val id: Int)`）。
+
+### 3-5. 下部ナビゲーション
+
+```kotlin
+enum class TopLevelDestination(val route: Any, val label: String, val icon: ImageVector) {
+    Home(HomeRoute, "ホーム", Icons.Filled.Home),
+    Users(UsersRoute, "一覧", Icons.Filled.Person),
+    Settings(SettingsRoute, "設定", Icons.Filled.Settings),
+}
+```
+
+```kotlin
+NavigationBar {
+    TopLevelDestination.entries.forEach { top ->
+        NavigationBarItem(
+            selected = top == selectedTopLevel,
+            onClick = { navController.navigateToTopLevel(top) },
+            icon = { Icon(top.icon, contentDescription = null) },
+            label = { Text(top.label) },
+        )
+    }
+}
+```
+
+- **名前・アイコン・宛先を、enum に1か所にまとめています。** 画面を足すときは、enum に1行足せば、下部ナビにも出ます。
+- **アイコンの `contentDescription` は `null` です。** 文字（`label`）が見えているので、説明を付けると、
+  読み上げで同じ内容が2回読まれるためです。逆に、文字が無いアイコンだけのボタン
+  （Top App Bar の (i) ボタン、戻る矢印）には、必ず説明を付けます。
+- Material 3 の下部ナビゲーションは、**3〜5個**の主要な画面に向いています。
+
+### 3-6. ★ 選択中のタブは、バックスタックから求める
+
+```kotlin
+val backStackEntry by navController.currentBackStackEntryAsState()
+val currentDestination = backStackEntry?.destination
+
+val selectedTopLevel = TopLevelDestination.entries.firstOrNull { top ->
+    currentDestination?.hierarchy?.any { it.hasRoute(top.route::class) } == true
+}
+```
+
+**「選択中のタブ」を、`rememberSaveable` などの別の変数で持ちません。**
+`NavController` が持つ「今の宛先」から、毎回求めます。
+
+公式ドキュメントのサンプルには、選択中のタブを `rememberSaveable` の変数で別に持つ書き方があります。
+この書き方だと、**戻るボタンで前の画面に戻ったとき、画面は変わるのに、タブの表示が変わらない**
+というずれが起きるおそれがあります（サンプルそのものは、実行して確かめていません）。
+
+今の宛先から求めれば、**タップでも、戻るボタンでも、回転でも、常に画面とタブが一致します。**
+「状態は、1か所だけで持つ」という原則です（同じ情報を2か所で持つと、ずれる）。
+
+### 3-7. タブを押したときの移動
+
+```kotlin
+private fun NavController.navigateToTopLevel(destination: TopLevelDestination) {
+    navigate(destination.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+```
+
+下部ナビゲーションの、決まった書き方です。3つの指定には、それぞれ役割があります。
+
+| 指定 | 役割 | 外すと |
+|---|---|---|
+| `popUpTo(最初の画面) { saveState = true }` | タブを移るたびに、バックスタックが積み上がらないようにする。抜ける画面の状態は保存する | 戻るボタンで、押してきたタブを**逆にたどる** |
+| `launchSingleTop = true` | 表示中のタブをもう一度押しても、同じ画面を重ねて作らない | 同じ画面が積み重なる |
+| `restoreState = true` | 前に開いたタブに戻ったとき、保存した状態を復元する | スクロール位置などが**先頭に戻る** |
+
+#### 実機で確認した動き（SH-51C・Android 14）
+
+**指定を全部付けたとき：** ホーム → 一覧 → 設定 → 戻るボタン
+
+```
+[Nav] 宛先が変わった → UsersRoute
+[Nav] 宛先が変わった → SettingsRoute
+[Nav] 宛先が変わった → HomeRoute        ← 戻るボタン。一覧ではなく、ホームに戻る
+```
+
+バックスタックが積み上がらないので、戻るボタンは、**最初の画面（ホーム）に戻ります**。
+これが、下部ナビゲーションの標準的な動きです。
+
+**`popUpTo` を外したとき：** ホーム → 一覧 → 設定 → ホーム（タップ）→ 戻るボタンを3回
+
+```
+[Nav] 宛先が変わった → UsersRoute
+[Nav] 宛先が変わった → SettingsRoute
+[Nav] 宛先が変わった → HomeRoute        ← タップ
+[Nav] 宛先が変わった → SettingsRoute    ← 戻る（押してきたタブを逆にたどる）
+[Nav] 宛先が変わった → UsersRoute
+[Nav] 宛先が変わった → HomeRoute
+```
+
+**`saveState` と `restoreState` を外したとき：** 一覧を下へスクロールし（先頭が「ユーザー 26」）、
+ホームに移って一覧に戻る
+
+| | 一覧に戻ったときの先頭 |
+|---|---|
+| 指定あり（`saveState` + `restoreState`） | **ユーザー 27 のまま**（スクロール位置が残る） |
+| 指定なし | **ユーザー 1**（先頭に戻る） |
+
+（40件の一覧は、確認用に一時的に差し替えたものです。スクロール位置の保存には、
+Step 1 で確認した `rememberScrollState` が、`Saver` で保存に対応していることが使われています）
+
+### 3-8. 戻るボタンの動き
+
+#### タブの画面で戻る
+
+最初の画面（ホーム）で、もう一度戻るボタンを押すと、アプリを離れます。
+
+- `adb`（`monkey`）で起動した場合は、`onPause → onStop → onDestroy` まで進み、Activity が**終了**しました。
+- ホーム画面のアイコンから起動した場合は、Android 12 以降、バックグラウンドへ移るだけで
+  `onDestroy` まで進みません（Phase 1 の課題4）。今回は、この端末のホーム画面のページに、
+  アプリのアイコンが見当たらず、Step 3 の構成では確認できていません。
+
+**起動方法で、戻るボタンの結果が変わる**ことに注意してください
+（`adb` から起動したタスクは、アイコンから起動したタスクと、扱いが違うことがあります）。
+
+#### テーマの確認画面で戻る（トップレベルではない画面）
+
+Top App Bar の (i) ボタンは、`navigate(ThemeRoute)` で、バックスタックに**画面を積みます**。
+
+```kotlin
+IconButton(onClick = { navController.navigate(ThemeRoute) }) { … }        // (i) ボタン：積む
+IconButton(onClick = { navController.popBackStack() }) { … }              // 戻る矢印：1つ戻る
+```
+
+実機で、(i) → 端末の戻るボタン → (i) → 画面の戻る矢印、と操作したログです。
+
+```
+[Nav] 宛先が変わった → ThemeRoute
+[Nav] 宛先が変わった → HomeRoute        ← 端末の戻るボタン
+[Nav] 宛先が変わった → ThemeRoute
+[Nav] 宛先が変わった → HomeRoute        ← 画面の戻る矢印
+```
+
+**端末の戻るボタンと、画面の戻る矢印は、同じ動き**（1つ前の画面に戻る）です。
+
+### 3-9. ⚠️ 起動・回転の直後は、「今の宛先」が `null`
+
+```
+[Compose] XrStudyApp
+[Nav] 宛先が変わった → null            ← 最初の組み立て。宛先がまだ決まっていない
+[Compose] XrStudyApp                   ← 少し後（コールドスタートで約0.5秒、回転で約0.2秒）に再実行
+[Nav] 宛先が変わった → HomeRoute
+```
+
+`currentBackStackEntryAsState()` は、最初の組み立てでは `null` を返し、
+そのあとで本当の宛先が入ります。
+
+もし、下部ナビを「`selectedTopLevel != null` のときだけ」表示すると、
+**下部ナビが遅れて現れ、本文の余白が動いて、画面がガタつきます。**
+
+そのため、バーの表示は、「テーマの確認画面**ではない**」で決めています。
+
+```kotlin
+val showTopLevelBars = !isThemeScreen     // null の間も、true（バーが最初から出る）
+```
+
+（一瞬、選択中のタブの強調と、タイトルが後から入ります。余白が動くよりは、目立ちません。
+この遅れそのものは、ログで確認したもので、目で見て確かめたものではありません）
+
+### 3-10. 画面ごとに Top App Bar と下部ナビを変える
+
+```kotlin
+CenterAlignedTopAppBar(
+    title = { Text(タブなら label、テーマの確認なら "テーマの確認") },
+    navigationIcon = { if (isThemeScreen) { 戻る矢印 } },
+    actions = { if (showTopLevelBars) { (i) ボタン } },
+)
+bottomBar = { if (showTopLevelBars) { NavigationBar { … } } }
+```
+
+| 画面 | タイトル | 左 | 右 | 下部ナビ |
+|---|---|---|---|---|
+| ホーム・一覧・設定 | 画面の名前 | なし | (i) ボタン | **あり** |
+| テーマの確認 | テーマの確認 | **戻る矢印** | なし | **なし** |
+
+**`Scaffold` は、アプリの一番外側に1つだけ**置いて、バーの中身を、今の宛先で切り替えています。
+（画面ごとに `Scaffold` を持つ作り方もありますが、その場合、下部ナビも画面ごとに別々に組み立てられる
+ことになります）
+
+### 3-11. 実機で確認した結果
+
+| 確認したこと | 結果 |
+|---|---|
+| 3つのタブの表示 | ホーム・一覧・設定が表示され、選択中のタブが強調された |
+| テーマの確認画面 | 戻る矢印が出て、下部ナビが隠れた（スクリーンショットと `uiautomator` で確認） |
+| 戻るボタン（タブ） | ホーム → 一覧 → 設定 → 戻る → **ホーム** |
+| 戻るボタン（テーマの確認） | 端末の戻るボタン・戻る矢印とも、1つ前の画面に戻った |
+| スクロール位置の保存 | ホームに移って一覧に戻っても、**位置が残った** |
+| 回転（設定タブ、横向き） | 「設定」が選ばれたまま復元された。下部ナビも表示された |
+| `innerPadding` を外す | バナーの上半分が、Top App Bar の裏に隠れた |
+
+### 3-12. iOS との比較
+
+| 観点 | iOS（SwiftUI） | Android（Compose） |
+|---|---|---|
+| 画面の履歴 | `NavigationStack` の `path` | `NavController` のバックスタック |
+| 宛先の登録 | `navigationDestination(for:)` | `composable<宛先>` |
+| 画面を移動する | `path.append(値)` | `navController.navigate(宛先)` |
+| 下部のタブ | `TabView` | `NavigationBar` + `NavHost`（自分で組み合わせる） |
+| タブごとの状態 | `TabView` が各タブを保持する | `saveState` / `restoreState` の指定で保存・復元する |
+| 戻る | 左上の戻るボタン、スワイプ | 端末の戻るボタン（画面の戻る矢印は、自分で作る） |
+
+**`TabView` は、各タブの状態を自動で保持します。** Android は、`navigate` の3つの指定を、
+自分で書く必要があります（3-7）。
+
+---
+
+## 手を動かして確かめる（Step 3）
+
+### 課題1：戻るボタンとバックスタックを見る（5分）
+
+```bash
+adb logcat -s LIFECYCLE
+```
+
+を流したまま、次を行います。
+
+1. ホームから、下部ナビで「一覧」→「設定」と移る
+2. 端末の戻るボタンを押す → **「一覧」ではなく、「ホーム」に戻る**
+
+`[Nav]` のログで、バックスタックが積み上がっていないことを確認してください。
+
+### 課題2：`popUpTo` を外す（5分）※戻すこと
+
+`XrStudyApp.kt` の `navigateToTopLevel` から、`popUpTo(…)` の行を外します。
+
+```kotlin
+navigate(destination.route) {
+    // popUpTo(graph.findStartDestination().id) { saveState = true }   ← 外す
+    launchSingleTop = true
+    restoreState = true
+}
+```
+
+ホーム → 一覧 → 設定 → ホーム（タップ）と移ってから、戻るボタンを3回押します。
+**設定 → 一覧 → ホーム の順に、押してきたタブを逆にたどります**（3-7 のログと同じです）。
 
 確認したら元に戻してください。
+
+### 課題3：スクロール位置の保存を確かめる（10分）※戻すこと
+
+1. `XrStudyApp.kt` の一覧を、40件のデータに差し替えます（`import com.example.xrstudy.ui.model.User` が必要です）。
+
+   ```kotlin
+   composable<UsersRoute> {
+       UserListScreen(users = List(40) { User(it + 1, "ユーザー ${it + 1}", "user${it + 1}@example.com") })
+   }
+   ```
+
+2. 「一覧」を下へスクロールし、ホームに移って、一覧に戻る → **スクロール位置が残っています**
+3. `navigateToTopLevel` から、`saveState = true` と `restoreState = true` を外して、入れ直す
+4. 同じ操作をする → **先頭（ユーザー 1）に戻ります**
+
+確認したら、両方を元に戻してください。
+
+### 課題4：回転しても、選んだタブが残ることを確認する（5分）
+
+1. 下部ナビで「設定」を選ぶ
+2. 端末を回転させる → **「設定」が選ばれたまま**です
+3. ログで、`[Compose] SettingsScreen` が出て、`HomeScreen` が出ないことを確認する
+
+Step 2 の課題6（`rememberSaveable` と `remember` の比較）の代わりです。
+選んだタブは、`NavController` のバックスタックに保存されているので、`rememberSaveable` を書かなくても残ります。
+
+### 課題5：テーマの確認画面の、戻り方を比べる（3分）
+
+1. Top App Bar の (i) ボタンで、テーマの確認画面を開く
+2. **画面の戻る矢印**で戻る
+3. もう一度開いて、**端末の戻るボタン**で戻る
+
+`[Nav]` のログが、どちらも「ThemeRoute → HomeRoute」で、同じ動きであることを確認してください。
 
 ---
 
@@ -967,19 +1315,25 @@ adb logcat -s LIFECYCLE
 アプリを完全に終了してから起動した（コールドスタート）ときの、実際のログです。
 
 ```
-10:32:35.127  MainActivity onCreate
-10:32:35.171  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
-10:32:35.179  MainActivity onStart
-10:32:35.182  MainActivity onResume
-10:32:35.357  [Compose] XRStudyTheme
-10:32:35.375  [Compose] XrStudyApp
-10:32:35.579  [Compose] HomeScreen
+11:44:28.476  MainActivity onCreate
+11:44:28.506  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
+11:44:28.512  MainActivity onStart
+11:44:28.514  MainActivity onResume
+11:44:28.690  [Compose] XRStudyTheme
+11:44:28.708  [Compose] XrStudyApp
+11:44:28.999  [Compose] HomeScreen
+11:44:29.184  [Nav] 宛先が変わった → null
+11:44:29.204  [Compose] XrStudyApp
+11:44:29.238  [Nav] 宛先が変わった → HomeRoute
 ```
 
 - **`onCreate END` が、`onResume` より前**に出ています。`setContent` が、登録だけで戻っている証拠です。
 - **`[Compose]` のログは、`onResume` より後**に出ています。組み立てが、そのあとに始まっています。
 - **`XRStudyTheme` → `XrStudyApp` → `HomeScreen`** の順に、外側から内側へ実行されています。
   `HomeScreen` が少し後に出るのは、`Scaffold` が本文を、サイズを測る段階で組み立てるためです。
+- **`[Nav] 宛先が変わった → null`** が、組み立ての後に出ています。
+  最初の組み立てでは、`NavController` の「今の宛先」が、まだ決まっていない（`null`）ためです。
+  そのあと `XrStudyApp` が再実行され、本当の宛先（`HomeRoute`）が入ります（Step 3 の 3-9 を参照）。
 
 ### Compose が組み立てる中身
 
@@ -990,12 +1344,13 @@ XRStudyTheme
   └ isSystemInDarkTheme() でライト／ダークを決め、MaterialTheme に色と文字を渡す
      ↓
 XrStudyApp
-  ├ rememberSaveable で selectedIndex を作る（初期値は Home）
+  ├ rememberNavController() で NavController を作る
+  ├ currentBackStackEntryAsState() で「今の宛先」を取る（最初は null）
   └ Scaffold
        ├ topBar：CenterAlignedTopAppBar
-       └ 本文：Column
-            ├ ScreenSwitcher（切り替えのスイッチ）
-            └ when (selected) で、選ばれた画面を呼ぶ
+       ├ bottomBar：NavigationBar（ホーム／一覧／設定）
+       └ 本文：NavHost（startDestination = HomeRoute）
+            └ composable<HomeRoute>
                  ↓
               HomeScreen
                  ├ BannerPlaceholder
@@ -1003,47 +1358,52 @@ XrStudyApp
                  └ notices.forEach { NoticeRow(...) }
 ```
 
-### スイッチをタップしたとき（recomposition）
+### 下部ナビをタップしたとき（recomposition）
 
 「一覧」をタップしたときのログです。
 
 ```
-10:32:40.529  [Compose] XrStudyApp
-10:32:40.556  [Compose] UserListScreen
+11:46:09.844  [Compose] XrStudyApp
+11:46:09.881  [Nav] 宛先が変わった → UsersRoute
+11:46:09.910  [Compose] UserListScreen
 ```
 
 ```
 タップ
-  → onSelect が selectedIndex を書き換える
-  → 状態が変わったので、それを読んでいる XrStudyApp だけが再実行される（recomposition）
-  → when が UserListScreen を選ぶ
+  → navigate(UsersRoute) が、NavController のバックスタックを書き換える
+  → 「今の宛先」が変わったので、それを読んでいる XrStudyApp が再実行される（recomposition）
+  → NavHost が、UsersRoute の画面（UserListScreen）を組み立てる
   → 画面が更新される
 ```
 
 - **`XRStudyTheme` は、再実行されていません。** 入力（`darkTheme`）が変わっていないためです。
   **Compose は、状態が変わった部分だけを作り直します。**
 - Phase 1 のカウンターと同じ、「状態が変わると、それを読んでいる部分だけが再描画される」仕組みです。
+  ここでは、「状態」が `NavController` の「今の宛先」です。
 
 ### 回転したとき
 
-回転して、「一覧」を選んでいた状態のログです。
+回転して、「設定」を選んでいた状態のログです。
 
 ```
-10:32:50.674  MainActivity onPause
-10:32:50.677  MainActivity onStop
-10:32:50.778  MainActivity onDestroy
-10:32:50.794  MainActivity onCreate
-10:32:50.800  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
-10:32:50.802  MainActivity onStart
-10:32:50.803  MainActivity onResume
-10:32:50.823  [Compose] XRStudyTheme
-10:32:50.824  [Compose] XrStudyApp
-10:32:50.877  [Compose] UserListScreen
+11:43:04.221  MainActivity onPause
+11:43:04.223  MainActivity onStop
+11:43:04.309  MainActivity onDestroy
+11:43:04.333  MainActivity onCreate
+11:43:04.339  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
+11:43:04.340  MainActivity onStart
+11:43:04.342  MainActivity onResume
+11:43:04.367  [Compose] XRStudyTheme
+11:43:04.368  [Compose] XrStudyApp
+11:43:04.419  [Compose] SettingsScreen
+11:43:04.527  [Nav] 宛先が変わった → null
+11:43:04.534  [Compose] XrStudyApp
+11:43:04.601  [Nav] 宛先が変わった → SettingsRoute
 ```
 
 Activity が作り直されるので、④からやり直しです（`onDestroy` の後に `onCreate`）。
-それでも、**`HomeScreen` ではなく `UserListScreen` が組み立てられています。**
-`selectedIndex` が `rememberSaveable` に保存されていて、選んでいた画面が復元されたためです。
+それでも、**`HomeScreen` ではなく `SettingsScreen` が組み立てられています。**
+`rememberNavController` が、バックスタックを回転をまたいで保存しているため、選んでいた画面が復元されます。
 
 ### ホームボタンで離れて戻ったとき
 
@@ -1064,7 +1424,7 @@ Activity のライフサイクル、ViewModel、Compose の組み立てが、**1
 |---|---|
 | `MainActivity.kt` | `MainActivity onCreate` / `onCreate END` / `onStart` / `onResume` / `onPause` / `onStop` / `onDestroy` |
 | `ui/theme/Theme.kt` | `[Compose] XRStudyTheme` |
-| `ui/XrStudyApp.kt` | `[Compose] XrStudyApp` |
+| `ui/XrStudyApp.kt` | `[Compose] XrStudyApp` / `[Nav] 宛先が変わった → 宛先` |
 | `ui/ThemeShowcase.kt`、`home/HomeScreen.kt`、`users/UserListScreen.kt`、`settings/SettingsScreen.kt` | `[Compose] 画面名` |
 
 > **⚠️ `@Composable` 関数の本体に、ログを書くときの注意**
@@ -1109,9 +1469,9 @@ adb logcat -s LIFECYCLE
 
 ### 課題2：どのログが出るかを見る（5分）
 
-スイッチで「ホーム」→「一覧」→「設定」→「テーマ」と切り替えて、ログを見てください。
+下部ナビで「ホーム」→「一覧」→「設定」と切り替え、(i) ボタンで「テーマの確認」も開いて、ログを見てください。
 
-- `XrStudyApp` と、**選んだ画面**のログだけが出ます
+- `XrStudyApp`、`[Nav]`、**選んだ画面**のログが、この順に出ます
 - **`XRStudyTheme` は出ません**（状態が変わっていないため）
 
 ### 課題3：回転とホームボタンを比べる（5分）

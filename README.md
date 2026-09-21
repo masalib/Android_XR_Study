@@ -36,7 +36,7 @@ git checkout phase-0-complete    # その時点の状態を見る
 - [カウンターアプリ 完全解説 — Android の状態管理](docs/02-カウンターアプリ解説.md)
   — `remember` / `rememberSaveable` / `ViewModel` の違いを実測値つきで解説
 - [Compose 画面設計 — Phase 2 解説](docs/03-Compose画面設計解説.md)
-  — テーマ（`ColorScheme` / `Typography`）、ライト・ダーク、`Scaffold` など。Step ごとに追記
+  — テーマ、静的な3画面、下部ナビゲーションと画面遷移（`NavHost`）、起動から表示までの流れ。Step ごとに追記
 
 ## 開発環境
 
