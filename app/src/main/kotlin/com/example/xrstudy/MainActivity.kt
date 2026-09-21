@@ -62,6 +62,11 @@ class MainActivity : ComponentActivity() {
                 XrStudyApp()
             }
         }
+
+        // setContent は「この UI を表示する」と登録するだけで、すぐに戻る。
+        // 画面の組み立て（Compose）は、この後の onStart → onResume より後に始まる。
+        // その順序は、[Compose] のログとの並びで確認できる（docs/03「起動から表示までの流れ」）。
+        Log.d("LIFECYCLE", "MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ")
     }
 
     //ライフサイクルをログで出力する

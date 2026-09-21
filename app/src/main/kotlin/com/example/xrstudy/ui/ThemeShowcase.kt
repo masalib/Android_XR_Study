@@ -1,5 +1,6 @@
 package com.example.xrstudy.ui
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,9 @@ import com.example.xrstudy.ui.theme.XRStudyTheme
  */
 @Composable
 fun ThemeShowcase(modifier: Modifier = Modifier) {
+    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
+    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
+    Log.d("LIFECYCLE", "[Compose] ThemeShowcase")
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
 

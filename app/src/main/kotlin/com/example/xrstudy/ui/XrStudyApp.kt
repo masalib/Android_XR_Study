@@ -1,5 +1,6 @@
 package com.example.xrstudy.ui
 
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,6 +45,9 @@ private enum class Screen(val label: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun XrStudyApp() {
+    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
+    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
+    Log.d("LIFECYCLE", "[Compose] XrStudyApp")
     // ★ 選択中の画面を rememberSaveable で持つ。回転しても、選んだ画面が残る（Phase 1 の実践）。
     // enum をそのまま保存するのではなく、Int（位置）で持つのが簡単。
     var selectedIndex by rememberSaveable { mutableIntStateOf(Screen.Home.ordinal) }

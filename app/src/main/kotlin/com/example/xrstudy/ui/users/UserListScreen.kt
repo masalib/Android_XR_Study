@@ -1,5 +1,6 @@
 package com.example.xrstudy.ui.users
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,6 +36,9 @@ fun UserListScreen(
     users: List<User>,
     modifier: Modifier = Modifier,
 ) {
+    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
+    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
+    Log.d("LIFECYCLE", "[Compose] UserListScreen")
     Column(
         modifier = modifier
             .fillMaxSize()

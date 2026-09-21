@@ -1,5 +1,6 @@
 package com.example.xrstudy.ui.home
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,9 @@ fun HomeScreen(
     notices: List<Notice>,
     modifier: Modifier = Modifier,
 ) {
+    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
+    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
+    Log.d("LIFECYCLE", "[Compose] HomeScreen")
     Column(
         modifier = modifier
             .fillMaxSize()
