@@ -72,7 +72,8 @@ fun XrStudyApp() {
     val isThemeScreen = currentDestination?.hasRoute(ThemeRoute::class) == true
 
     // ⚠️ 起動・回転の直後、最初の組み立てでは currentDestination が null（宛先がまだ決まっていない）。
-    // 約0.2秒後に、宛先が入って再組み立てされる（[Nav] のログで確認できる）。
+    // 少し後（コールドスタートで約0.5秒、回転で約0.2秒）に、宛先が入って再組み立てされる。
+    // [Nav] のログで確認できる（最初に「→ null」、次に本当の宛先が出る）。
     // その間に「selectedTopLevel != null のときだけ下部ナビを出す」と書くと、
     // 下部ナビが遅れて現れ、本文の余白が動いて、画面がガタつく。
     // そのため、バーの表示は「テーマの確認画面ではない」で決める（null の間も表示される）。
