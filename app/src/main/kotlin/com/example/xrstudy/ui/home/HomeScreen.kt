@@ -2,23 +2,15 @@ package com.example.xrstudy.ui.home
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -26,17 +18,21 @@ import com.example.xrstudy.ui.PreviewFrame
 import com.example.xrstudy.ui.SampleData
 import com.example.xrstudy.ui.components.EmptyState
 import com.example.xrstudy.ui.components.SectionHeader
+import com.example.xrstudy.ui.model.Banner
 import com.example.xrstudy.ui.model.Notice
 
 /**
- * ホーム画面。上にバナー、下にお知らせの一覧。
+ * ホーム画面。上にバナー（横スワイプ）、下にお知らせの一覧。
  *
- * `notices` を引数で受け取るだけで、データの出どころは知らない。
- * Phase 1 の CounterCard と同じ「状態（データ）を上に持たせる」作り（state hoisting）。
+ * データ（notices、banners）と、バナーが押されたときの処理（onBannerClick）を、
+ * 引数で受け取るだけで、データの出どころも、押されたあとの移動先も知らない。
+ * Phase 1 の CounterCard と同じ「状態とイベントを、親に持たせる」作り（state hoisting）。
  */
 @Composable
 fun HomeScreen(
     notices: List<Notice>,
+    banners: List<Banner>,
+    onBannerClick: (Banner) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
@@ -49,7 +45,10 @@ fun HomeScreen(
             .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        BannerPlaceholder(modifier = Modifier.padding(horizontal = 16.dp))
+        // バナーが 0 件のときは、何も出さない（空の枠を残さない）。
+        if (banners.isNotEmpty()) {
+            BannerPager(banners = banners, onBannerClick = onBannerClick)
+        }
 
         SectionHeader("お知らせ")
 
@@ -60,31 +59,6 @@ fun HomeScreen(
             Column {
                 notices.forEach { notice -> NoticeRow(notice) }
             }
-        }
-    }
-}
-
-/**
- * バナーの場所取り。Step 4 で、横スクロールできる HorizontalPager に置き換える。
- * Surface に「背景色（color）」と「中の文字色（contentColor）」を渡すと、
- * 中の Text は色を書かなくても contentColor で描かれる。
- */
-@Composable
-private fun BannerPlaceholder(modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = RoundedCornerShape(16.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(160.dp)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = "バナー\n（Step 4 で横スクロールにします）",
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
@@ -112,23 +86,35 @@ private fun NoticeRow(notice: Notice) {
 @Preview(name = "通常", showBackground = true, heightDp = 640)
 @Composable
 private fun HomeScreenPreview() {
-    PreviewFrame { HomeScreen(notices = SampleData.notices) }
+    PreviewFrame {
+        HomeScreen(notices = SampleData.notices, banners = SampleData.banners, onBannerClick = {})
+    }
 }
 
 @Preview(name = "長い文字列", showBackground = true, heightDp = 640)
 @Composable
 private fun HomeScreenLongTextPreview() {
-    PreviewFrame { HomeScreen(notices = listOf(SampleData.longNotice) + SampleData.notices) }
+    PreviewFrame {
+        HomeScreen(
+            notices = listOf(SampleData.longNotice) + SampleData.notices,
+            banners = listOf(SampleData.longBanner) + SampleData.banners,
+            onBannerClick = {},
+        )
+    }
 }
 
 @Preview(name = "空状態", showBackground = true, heightDp = 640)
 @Composable
 private fun HomeScreenEmptyPreview() {
-    PreviewFrame { HomeScreen(notices = emptyList()) }
+    PreviewFrame {
+        HomeScreen(notices = emptyList(), banners = emptyList(), onBannerClick = {})
+    }
 }
 
 @Preview(name = "ダーク", showBackground = true, heightDp = 640)
 @Composable
 private fun HomeScreenDarkPreview() {
-    PreviewFrame(darkTheme = true) { HomeScreen(notices = SampleData.notices) }
+    PreviewFrame(darkTheme = true) {
+        HomeScreen(notices = SampleData.notices, banners = SampleData.banners, onBannerClick = {})
+    }
 }

@@ -26,7 +26,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.example.xrstudy.ui.home.BannerDetailScreen
 import com.example.xrstudy.ui.home.HomeScreen
+import com.example.xrstudy.ui.navigation.BannerDetailRoute
 import com.example.xrstudy.ui.navigation.HomeRoute
 import com.example.xrstudy.ui.navigation.SettingsRoute
 import com.example.xrstudy.ui.navigation.ThemeRoute
@@ -70,14 +73,18 @@ fun XrStudyApp() {
         currentDestination?.hierarchy?.any { it.hasRoute(top.route::class) } == true
     }
     val isThemeScreen = currentDestination?.hasRoute(ThemeRoute::class) == true
+    val isBannerDetailScreen = currentDestination?.hasRoute(BannerDetailRoute::class) == true
+
+    // トップレベルではない画面（下部ナビに出ない画面）。戻る矢印を出し、下部ナビを隠す。
+    val isSubScreen = isThemeScreen || isBannerDetailScreen
 
     // ⚠️ 起動・回転の直後、最初の組み立てでは currentDestination が null（宛先がまだ決まっていない）。
     // 少し後（コールドスタートで約0.5秒、回転で約0.2秒）に、宛先が入って再組み立てされる。
     // [Nav] のログで確認できる（最初に「→ null」、次に本当の宛先が出る）。
     // その間に「selectedTopLevel != null のときだけ下部ナビを出す」と書くと、
     // 下部ナビが遅れて現れ、本文の余白が動いて、画面がガタつく。
-    // そのため、バーの表示は「テーマの確認画面ではない」で決める（null の間も表示される）。
-    val showTopLevelBars = !isThemeScreen
+    // そのため、バーの表示は「トップレベルではない画面ではない」で決める（null の間も表示される）。
+    val showTopLevelBars = !isSubScreen
 
     // 画面が切り替わるたびにログを出す。戻るボタンの動きを確認するためのもの。
     LaunchedEffect(currentDestination) {
@@ -92,13 +99,14 @@ fun XrStudyApp() {
                         when {
                             selectedTopLevel != null -> selectedTopLevel.label
                             isThemeScreen -> "テーマの確認"
+                            isBannerDetailScreen -> "バナー"
                             else -> "XR Study"
                         }
                     )
                 },
-                // 「戻る」矢印は、トップレベルではない画面（テーマの確認）のときだけ出す。
+                // 「戻る」矢印は、トップレベルではない画面（テーマの確認、バナーの詳細）のときだけ出す。
                 navigationIcon = {
-                    if (isThemeScreen) {
+                    if (isSubScreen) {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
                         }
@@ -140,10 +148,24 @@ fun XrStudyApp() {
             modifier = Modifier.padding(innerPadding),
         ) {
             // 宛先（ルート）ごとに、表示する画面を登録する。
-            composable<HomeRoute> { HomeScreen(notices = SampleData.notices) }
+            composable<HomeRoute> {
+                HomeScreen(
+                    notices = SampleData.notices,
+                    banners = SampleData.banners,
+                    // バナーが押されたら、そのバナーの id を持った宛先へ移動する。
+                    // 移動のしかたは、画面（HomeScreen）ではなく、ここで決める。
+                    onBannerClick = { banner -> navController.navigate(BannerDetailRoute(banner.id)) },
+                )
+            }
             composable<UsersRoute> { UserListScreen(users = SampleData.users) }
             composable<SettingsRoute> { SettingsScreen(appVersion = SampleData.APP_VERSION) }
             composable<ThemeRoute> { ThemeShowcase() }
+            composable<BannerDetailRoute> { backStackEntry ->
+                // 宛先から、渡された引数（bannerId）を取り出す。
+                val route = backStackEntry.toRoute<BannerDetailRoute>()
+                // 見つからない場合（null）も、画面が表示できるようにしておく。
+                BannerDetailScreen(banner = SampleData.banners.firstOrNull { it.id == route.bannerId })
+            }
         }
     }
 }

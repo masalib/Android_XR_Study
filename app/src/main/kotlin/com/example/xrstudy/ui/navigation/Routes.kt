@@ -26,6 +26,21 @@ object UsersRoute
 @Serializable
 object SettingsRoute
 
+/**
+ * バナーの詳細画面。どのバナーかを、`bannerId` という**引数**で受け取る。
+ *
+ * 引数がある宛先は、`object` ではなく `data class` にする。
+ *
+ *     navController.navigate(BannerDetailRoute(bannerId = 2))       // 渡す側
+ *     val route = backStackEntry.toRoute<BannerDetailRoute>()       // 受け取る側
+ *     route.bannerId                                                // → 2
+ *
+ * 文字列のルートで、"banner/2" のように書いて、あとで数字に直す必要が無い。
+ * 型（Int）のまま、受け渡せる。
+ */
+@Serializable
+data class BannerDetailRoute(val bannerId: Int)
+
 /** 下部ナビゲーションには出さない、テーマの確認用の画面（Top App Bar のボタンから開く）。 */
 @Serializable
 object ThemeRoute

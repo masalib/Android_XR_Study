@@ -1,5 +1,7 @@
 package com.example.xrstudy.ui.model
 
+import androidx.annotation.DrawableRes
+
 /**
  * 画面に表示するデータの型。
  *
@@ -17,4 +19,18 @@ data class User(
     val id: Int,
     val name: String,
     val email: String,
+)
+
+/**
+ * ホームに表示するバナー。
+ *
+ * `@DrawableRes` は「この Int は、画像リソース（R.drawable.xxx）の ID です」という印。
+ * ただの Int と区別できるので、間違って別の数字（例：ユーザーの id）を渡すと、
+ * Android Studio が警告してくれる。
+ */
+data class Banner(
+    val id: Int,
+    @DrawableRes val imageRes: Int,
+    val title: String,
+    val description: String,
 )
