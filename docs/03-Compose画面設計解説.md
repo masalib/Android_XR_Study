@@ -14,8 +14,8 @@ Step ごとに解説します。Step が進むたびに、この下へ追記し�
 | **1** | **テーマと骨組み**（`ColorScheme` / `Typography` / ライト・ダーク / `Scaffold`） | ✅ |
 | **2** | **静的な3画面**（`@Preview` で通常・長い文字列・空状態を確認） | ✅ |
 | **3** | **下部ナビゲーションと画面遷移**（`NavigationBar` / `NavHost`） | ✅ |
-| **4** | **ホームの横スクロールバナー**（`HorizontalPager`） | ✅ このドキュメント |
-| 5 | ユーザー一覧（`TabRow` / `LazyColumn`、空・読み込み中・エラー表示） | ⏳ |
+| **4** | **ホームの横スクロールバナー**（`HorizontalPager`） | ✅ |
+| **5** | **ユーザー一覧**（`TabRow` / `LazyColumn`、空・読み込み中・エラー表示） | ✅ このドキュメント |
 | 6 | 設定と仕上げ（ダイアログ・Snackbar・テーマ切り替え・アクセシビリティ） | ⏳ |
 
 ---
@@ -597,7 +597,7 @@ ui/
 ├─ model/Models.kt        ← データの型（Notice, User）
 ├─ components/Components.kt  ← 複数の画面で使う部品（SectionHeader, EmptyState）
 ├─ home/HomeScreen.kt     ← バナー（この Step の時点では場所取り。Step 4 で HorizontalPager に置き換え済み）+ お知らせ
-├─ users/UserListScreen.kt ← ユーザー一覧
+├─ users/UserListScreen.kt ← ユーザー一覧（Step 5 で、タブ・LazyColumn・状態ごとの表示に作り直し）
 └─ settings/SettingsScreen.kt ← 設定
 ```
 
@@ -805,24 +805,27 @@ Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
 この書き方は、**画面に見えない行まで、全部作ってしまいます。**
 5件なら問題ありませんが、1000件になると、起動が遅くなり、メモリも使います。
 
-Step 5 で、**見えている行だけを作る `LazyColumn`** に置き換えます。
+Step 5 で、**見えている行だけを作る `LazyColumn`** に置き換えました（Step 5 の 5-3）。
 （SwiftUI の `List` が、見えている行だけを作るのと同じです）
 
 ### 2-6. `@Preview` を「通常・長い文字列・空状態・ダーク」で並べる
 
 ```kotlin
-@Preview(name = "通常", showBackground = true, heightDp = 560)
+@Preview(name = "通常", showBackground = true, heightDp = 640)
 @Composable
-private fun UserListScreenPreview() {
-    PreviewFrame { UserListScreen(users = SampleData.users) }
+private fun HomeScreenPreview() {
+    PreviewFrame { HomeScreen(notices = SampleData.notices, …) }
 }
 
-@Preview(name = "空状態", showBackground = true, heightDp = 560)
+@Preview(name = "空状態", showBackground = true, heightDp = 640)
 @Composable
-private fun UserListScreenEmptyPreview() {
-    PreviewFrame { UserListScreen(users = emptyList()) }
+private fun HomeScreenEmptyPreview() {
+    PreviewFrame { HomeScreen(notices = emptyList(), …) }
 }
 ```
+
+（Step 2 の時点では、ユーザー一覧の Preview を例にしていました。ユーザー一覧は、Step 5 で、状態を引数で渡す形に
+変わったので、ここでは、ホーム画面の Preview に置き換えています。）
 
 - `PreviewFrame` は、テーマ（`XRStudyTheme`）と背景色を付ける共通の枠です（`PreviewSupport.kt`）。
   **テーマで包まないと、Preview では色や文字が Material の初期値になります。**
@@ -964,11 +967,14 @@ SH-51C（Android 14）で確認しました。長い文字列と空状態は、`
 
 ### 課題1：長い文字列を表示する（5分）※戻すこと
 
-`XrStudyApp.kt` の、ホームとユーザー一覧に渡しているデータを変えます。
+`XrStudyApp.kt` の、ホームに渡しているデータと、`FakeUserApi.kt`（一覧のデータ）を変えます。
 
 ```kotlin
-composable<HomeRoute> { HomeScreen(notices = listOf(SampleData.longNotice) + SampleData.notices) }
-composable<UsersRoute> { UserListScreen(users = listOf(SampleData.longUser) + SampleData.users) }
+// XrStudyApp.kt
+composable<HomeRoute> { HomeScreen(notices = listOf(SampleData.longNotice) + SampleData.notices, …) }
+
+// FakeUserApi.kt（Step 5 で追加。一覧のデータは、ここから返る）
+return listOf(SampleData.longUser) + SampleData.users
 ```
 
 アプリを入れ直して確認してください。
@@ -984,11 +990,11 @@ composable<UsersRoute> { UserListScreen(users = listOf(SampleData.longUser) + Sa
 
 ### 課題2：空状態を表示する（3分）※戻すこと
 
-同じ場所を、`emptyList()` に変えます。
+同じ場所を、`emptyList()` に変えます（一覧は、`FakeUserApi.kt` の `return` です）。
 
 ```kotlin
-notices = emptyList()
-users = emptyList()
+notices = emptyList()                 // XrStudyApp.kt
+return emptyList()                    // FakeUserApi.kt
 ```
 
 「お知らせはありません」「ユーザーがいません」が表示されます。
@@ -1382,13 +1388,14 @@ navigate(destination.route) {
 
 ### 課題3：スクロール位置の保存を確かめる（10分）※戻すこと
 
-1. `XrStudyApp.kt` の一覧を、40件のデータに差し替えます（`import com.example.xrstudy.ui.model.User` が必要です）。
+1. `FakeUserApi.kt` の一覧のデータを、40件に差し替えます（`import com.example.xrstudy.ui.model.User` が必要です）。
 
    ```kotlin
-   composable<UsersRoute> {
-       UserListScreen(users = List(40) { User(it + 1, "ユーザー ${it + 1}", "user${it + 1}@example.com") })
-   }
+   return List(40) { User(it + 1, "ユーザー ${it + 1}", "user${it + 1}@example.com") }
    ```
+
+   （Step 5 で、一覧の画面が、データを `FakeUserApi` から受け取る作りに変わったので、差し替える場所が変わりました。
+   一覧は、開くたびに、1.5秒の「読み込み中」を経て表示されます）
 
 2. 「一覧」を下へスクロールし、ホームに移って、一覧に戻る → **スクロール位置が残っています**
 3. `navigateToTopLevel` から、`saveState = true` と `restoreState = true` を外して、入れ直す
@@ -1711,6 +1718,406 @@ Android Studio で `home/BannerDetailScreen.kt` を開き、Preview の**「見�
 
 ---
 
+## Step 5：ユーザー一覧（タブ・LazyColumn・状態の表示）
+
+ユーザー一覧に、**タブ**（すべて／お気に入り）と、**読み込み中・エラー・空**の表示を作ります。
+ロードマップの「静的な見た目 → ユーザー操作 → **状態に応じた表示**」の、最後の段階です。
+
+### 5-1. 何を作ったのか
+
+```
+ui/
+├─ users/
+│   ├─ UsersUiState.kt    ← 画面の状態（Loading / Success / Error）を表す型
+│   ├─ UserListScreen.kt  ← タブ + LazyColumn + 状態ごとの表示（状態を受け取って表示するだけ）
+│   ├─ UserListLoader.kt  ← 読み込みを実行し、状態を UserListScreen に渡す
+│   └─ FakeUserApi.kt     ← 通信の代わりの、擬似的な読み込み（1.5秒待つ）
+└─ model/Models.kt        ← User に isFavorite を追加
+```
+
+**「状態を持つ部品」（`UserListLoader`）と、「表示だけの部品」（`UserListScreen`）を分けています。**
+表示だけの部品は、`@Preview` で、どんな状態でも、すぐに確認できます（5-6）。
+
+### 5-2. 画面の状態を「型」で表す
+
+```kotlin
+sealed interface UsersUiState {
+    data object Loading : UsersUiState                         // 読み込み中
+    data class Success(val users: List<User>) : UsersUiState   // 読み込めた（0 件のこともある）
+    data class Error(val message: String) : UsersUiState       // 失敗した
+}
+```
+
+画面が取りうる姿を、**3つの型**で表します。
+
+#### なぜ、Boolean（`isLoading`、`isError`）ではなく、型なのか
+
+Boolean を並べる書き方だと、「読み込み中なのに、エラーでもある」のような、**ありえない組み合わせ**が書けてしまいます。
+型なら、常に、3つのうちの**1つだけ**です。ありえない状態を、そもそも作れません。
+
+#### `sealed interface` は、「種類は、これだけ」と決める
+
+`when` で、状態ごとに表示を切り替えます。
+
+```kotlin
+when (state) {
+    UsersUiState.Loading -> LoadingContent(…)
+    is UsersUiState.Error -> ErrorContent(state.message, …)
+    is UsersUiState.Success -> …
+}
+```
+
+**`sealed` にすると、`when` で、全部の種類を書かないと、コンパイルエラーになります。**
+実際に、`UsersUiState` に `data object Refreshing`（再読み込み中）を足すと、`when` を書いた2か所で、
+次のエラーが出ました。
+
+```
+'when' expression must be exhaustive. Add the 'Refreshing' branch or an 'else' branch.
+```
+
+種類を足したとき、**書き忘れている画面を、コンパイラが全部教えてくれます**（課題5）。
+
+| 部分 | 意味 |
+|---|---|
+| `data object Loading` | 中身を持たない、1つだけの状態 |
+| `is UsersUiState.Error ->` | 「Error 型かどうか」を調べる。Error 型だと分かった後は、`state.message` が使える（スマートキャスト） |
+
+### 5-3. `LazyColumn` — 見えている行だけを作る
+
+```kotlin
+LazyColumn(modifier = Modifier.fillMaxWidth()) {
+    items(items = users, key = { it.id }) { user ->
+        UserRow(user)
+    }
+}
+```
+
+Step 2 の「`Column` + `verticalScroll` + `forEach`」は、**見えない行まで、全部作ってしまいます**。
+`LazyColumn` は、**画面に見えている行（と、その少し先）だけ**を作ります。
+
+#### 実機で数えた結果（SH-51C・Android 14）
+
+ユーザーを **1000件**にして、行が作られた数を、ログで数えました（確認用に、一時的に足したログです）。
+
+| 操作 | 作られた行の数 |
+|---|---|
+| 一覧を開いた直後 | **9行**（1000件のうち） |
+| 5回スワイプした後（先頭の行が「ユーザー 84」） | 新しく作られたのは **84行** |
+
+`Column` なら、開いた時点で 1000 行が作られます。**`LazyColumn` は、スクロールした分だけ、作ります。**
+SwiftUI の `List` が、見えている行だけを作るのと同じです。
+
+- **`key = { it.id }`** は、行を「位置」ではなく「id」で見分ける指定です。データの並びが変わっても（先頭に追加されるなど）、
+  行ごとの状態が混ざらず、動きも自然になります。
+- **`LazyColumn` を、`verticalScroll` の中に入れてはいけません。** 縦に動く部品を、縦に動く部品の中に入れると、
+  高さが決まらず、実行時にエラーになります（一般的な注意です。このプロジェクトでは試していません）。
+  1つの画面には、縦にスクロールする部品を、1つだけ置きます。
+
+### 5-4. タブ — `PrimaryTabRow`
+
+```kotlin
+PrimaryTabRow(selectedTabIndex = selectedTab.ordinal) {
+    UserTab.entries.forEach { tab ->
+        Tab(
+            selected = tab == selectedTab,
+            onClick = { onTabSelected(tab) },
+            text = { Text(tab.label) },
+        )
+    }
+}
+```
+
+```kotlin
+enum class UserTab(val label: String, val emptyMessage: String) {
+    All("すべて", "ユーザーがいません"),
+    Favorites("お気に入り", "お気に入りのユーザーは、まだいません"),
+}
+```
+
+- **タブの名前と、0 件のときのメッセージを、enum にまとめています。** タブを足すときは、enum に1行足します。
+- **選んでいるタブは、引数で受け取ります**（`selectedTab`、`onTabSelected`）。表示だけの部品は、状態を持ちません。
+- **タブは、どの状態のときも表示します。** 読み込み中でも、失敗しても、タブは動きません
+  （タブが消えたり出たりすると、画面がガタつきます）。
+- **タブが多いとき**は、横にスクロールできる `ScrollableTabRow` を使います（ロードマップ 5-1）。
+- タブを、横スワイプでも切り替えたいときは、Step 4 の `HorizontalPager` と組み合わせます（今回は作りません）。
+
+**「お気に入り」タブは、読み込んだユーザーを、絞り込むだけです。**
+
+```kotlin
+val shown = when (selectedTab) {
+    UserTab.All -> state.users
+    UserTab.Favorites -> state.users.filter { it.isFavorite }
+}
+```
+
+### 5-5. 状態ごとの表示
+
+| 状態 | 表示 | 作りで気をつけたこと |
+|---|---|---|
+| Loading | くるくる（`CircularProgressIndicator`）+ 「読み込み中…」 | **文字を付ける**。何を待っているのか伝わる |
+| Error | 警告アイコン + メッセージ + **「もう一度試す」ボタン** | **失敗の表示には、必ず、次の行動を付ける**。ボタンが無いと、画面を開き直すしかなくなる |
+| Success（0 件） | 「ユーザーがいません」 / 「お気に入りのユーザーは、まだいません」 | タブごとに、メッセージを変える |
+| Success（あり） | 一覧。お気に入りには、星 | — |
+
+### 5-6. 画面は「状態を受け取って表示するだけ」— だから Preview で全部見える
+
+```kotlin
+@Composable
+fun UserListScreen(
+    state: UsersUiState,
+    selectedTab: UserTab,
+    onTabSelected: (UserTab) -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+)
+```
+
+`UserListScreen` は、**状態・選んだタブ・イベントを、全部、引数で受け取る**だけです（stateless）。
+だから `@Preview` では、どんな状態でも、引数を渡すだけで、すぐに表示できます。
+
+```kotlin
+UserListScreen(state = UsersUiState.Loading, selectedTab = UserTab.All, onTabSelected = {}, onRetry = {})
+UserListScreen(state = UsersUiState.Error("サーバーに接続できませんでした"), …)
+```
+
+`UserListScreen.kt` には、次の Preview を用意しています。
+
+| Preview | 見ること |
+|---|---|
+| 通常 | 一覧と、星 |
+| お気に入りタブ | 絞り込み |
+| 長い文字列 | 名前とメールが「…」に省略される |
+| 空状態（お気に入りが 0 件） | タブごとのメッセージ |
+| 空状態（ユーザーが 0 件） | 全体が空のとき |
+| **読み込み中** | くるくる |
+| **エラー** | メッセージと、ボタン |
+| ダーク | ダークモード |
+
+**「読み込み中」と「エラー」は、実機では、待ったり、わざと失敗させたりしないと見られません。**
+Preview なら、すぐに、見た目を調整できます。これが、状態を引数で受け取る作りの利点です。
+
+### 5-7. 擬似的な読み込み — `LaunchedEffect` と `suspend`
+
+実機で、「読み込み中」と「エラー」を見るために、**通信の代わりの、擬似的な読み込み**を作りました。
+本物の通信は Phase 5 で作ります。
+
+```kotlin
+object FakeUserApi {
+    val simulateError: Boolean = false           // true にすると、必ず失敗する（課題2）
+
+    suspend fun fetchUsers(): List<User> {
+        delay(1500)                              // 1.5秒待つ
+        if (simulateError) throw IOException("サーバーに接続できませんでした")
+        return SampleData.users
+    }
+}
+```
+
+```kotlin
+@Composable
+fun UserListLoader(modifier: Modifier = Modifier) {
+    var reloadCount by remember { mutableIntStateOf(0) }
+    var state by remember { mutableStateOf<UsersUiState>(UsersUiState.Loading) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
+
+    LaunchedEffect(reloadCount) {                // ← reloadCount が変わるたびに、最初から実行
+        state = UsersUiState.Loading
+        state = try {
+            UsersUiState.Success(FakeUserApi.fetchUsers())
+        } catch (e: IOException) {
+            UsersUiState.Error(e.message ?: "読み込みに失敗しました")
+        }
+    }
+
+    UserListScreen(
+        state = state,
+        selectedTab = UserTab.entries[selectedTabIndex],
+        onTabSelected = { selectedTabIndex = it.ordinal },
+        onRetry = { reloadCount++ },             // 「もう一度試す」→ 数字を増やす → 読み込みをやり直す
+        modifier = modifier,
+    )
+}
+```
+
+| 部品 | 役割 |
+|---|---|
+| `suspend fun` | 「時間がかかる処理」の印。コルーチン（下の `LaunchedEffect` の中など）からしか呼べない |
+| `delay(1500)` | スレッドを止めずに、1.5秒待つ |
+| `LaunchedEffect(キー)` | キーが変わるたびに、中の処理を**最初から**実行する。SwiftUI の `.task(id:)` に近い |
+| `reloadCount++` | 「もう一度試す」が押されたら、数字を増やす。数字が変わると、`LaunchedEffect` がやり直される |
+
+#### 画面を離れると、読み込みは、自動でキャンセルされる
+
+`LaunchedEffect` の処理は、その画面が消えると、**自動でキャンセルされます**。
+実機で、5秒かかる読み込みの途中で、別のタブに移ったところ、`[Load] 結果` のログは、出ませんでした。
+「読み込み中に、別の画面へ移っても、安全」です（課題3）。
+
+#### 捕まえるのは `IOException` だけ
+
+```kotlin
+} catch (e: IOException) {          // ✅ 失敗（通信できなかった）だけを捕まえる
+```
+
+`Exception` を丸ごと捕まえると、コルーチンの**キャンセル**（`CancellationException`）まで捕まえてしまい、
+キャンセルが効かなくなります。**捕まえるのは、想定している失敗の種類だけ**にします。
+
+### 5-8. 実機のログで見る、読み込みの流れ
+
+一覧を開いたときの、実際のログです（`[Load]` は、`UserListLoader` が出しています）。
+
+```
+15:45:42.050  [Compose] XrStudyApp
+15:45:42.083  [Nav] 宛先が変わった → UsersRoute
+15:45:42.112  [Compose] UserListScreen           ← ① 読み込み中の画面
+15:45:42.188  [Load] 読み込み開始
+15:45:43.696  [Load] 結果 → Success（5件）        ← 約1.5秒後
+15:45:43.708  [Compose] UserListScreen           ← ② 成功の画面（状態が変わったので、作り直し）
+```
+
+**状態が変わる（`Loading` → `Success`）と、それを読んでいる `UserListScreen` が、作り直されます。**
+Phase 1 の「状態が変わると、それを読む部分だけが再描画される」が、ここでも起きています。
+
+エラーにしたとき（課題2）と、「もう一度試す」を押したときのログです。
+
+```
+15:48:19.151  [Load] 読み込み開始
+15:48:20.658  [Load] 結果 → Error（サーバーに接続できませんでした）
+15:48:25.446  [Load] 読み込み開始                   ← 「もう一度試す」を押した
+15:48:26.957  [Load] 結果 → Error（サーバーに接続できませんでした）
+```
+
+### 5-9. ⚠️ `remember` の限界 — 読み込みが、何度もやり直される
+
+`UserListLoader` は、`state`（読み込みの結果）を、`remember` で持っています。
+**Phase 1 で学んだとおり、`remember` は、回転や、画面を離れたときに、消えます。**
+実機で確認しました。
+
+| 操作 | 読み込み | 選んだタブ | 一覧のスクロール位置 |
+|---|---|---|---|
+| ホームに移って、一覧に戻る | **やり直し**（`[Load] 読み込み開始` が、また出る） | **残る**（お気に入りのまま） | **残る**（1000件で「ユーザー 84」のまま） |
+| 端末を回転させる | **やり直し** | **残る** | （確認していない） |
+
+- **選んだタブが残るのは、`rememberSaveable` で持っているためです**（消えると困る、小さな値）。
+- **読み込みの結果が消えるのは、`remember` で持っているためです**（Phase 1 の ① と同じ）。
+- **スクロール位置が残るのは、`LazyColumn` の位置が、`rememberSaveable` で保存されるためです**
+  （Step 3 の `saveState` / `restoreState` で、タブごとに保存・復元されます）。
+
+**「読み込んだデータを、回転や画面移動をまたいで持つ」のは、ViewModel の役目**です（Phase 1 の ③）。
+Phase 3 で、`UserListLoader` の中身を、ViewModel に移します。今の `remember` は、それまでの、仮のものです。
+
+### 5-10. 実機で確認した結果
+
+SH-51C（Android 14）で確認しました。
+
+| 確認したこと | 結果 |
+|---|---|
+| 一覧を開く | 「読み込み中…」→ 約1.5秒後に、5人が表示された。お気に入りの2人に、星 |
+| 「お気に入り」タブ | 2人に絞り込まれた |
+| エラー（一時的に、失敗させた） | 警告アイコン、メッセージ、「もう一度試す」が表示された |
+| 「もう一度試す」 | 読み込みが、やり直された |
+| 読み込み中に、別のタブへ移る | 読み込みが、キャンセルされた（`[Load] 結果` が出ない） |
+| 1000件 | 最初に作られた行は 9 行。5回スワイプで、新しく作られたのは 84 行 |
+| タブ移動・回転 | 選んだタブは残り、読み込みは、やり直しになった |
+| `when` の網羅性 | 種類を足すと、`when` の2か所が、コンパイルエラーになった |
+
+エラー、1000件、5秒の読み込みは、コードを一時的に書き換えて確認しました。書き換えは、元に戻してあります。
+
+### 5-11. iOS との比較
+
+| 観点 | iOS（SwiftUI） | Android（Compose） |
+|---|---|---|
+| 状態の型 | 関連値を持つ `enum`（`case loaded([User])` など） | `sealed interface` |
+| 状態ごとの切り替え | `switch`（全ケースを書かないとエラー） | `when`（全部の種類を書かないとエラー） |
+| 一覧 | `List`（見えている行だけを作る） | `LazyColumn` |
+| 読み込み中の表示 | `ProgressView` | `CircularProgressIndicator` |
+| 画面が出たときに読み込む | `.task { … }` / `.task(id:)` | `LaunchedEffect(キー) { … }` |
+| 待つ処理 | `async` 関数 + `Task.sleep` | `suspend` 関数 + `delay` |
+| 画面を離れたときの中断 | `.task` が自動でキャンセルされる | `LaunchedEffect` が自動でキャンセルされる |
+| タブ | `Picker`（`.segmented`）、`TabView` | `TabRow`（`PrimaryTabRow`） |
+
+---
+
+## 手を動かして確かめる（Step 5）
+
+### 課題1：状態ごとの Preview を見る（5分）
+
+Android Studio で `users/UserListScreen.kt` を開き、Preview の**「読み込み中」「エラー」「空状態」**を見てください。
+実機で、待ったり、失敗させたりしなくても、見た目を確認できます。
+
+### 課題2：エラーを起こす（5分）※戻すこと
+
+`FakeUserApi.kt` の `simulateError` を `true` にします。
+
+```kotlin
+val simulateError: Boolean = true      // false から変更
+```
+
+アプリを入れ直して、「一覧」を開きます。
+
+- 約1.5秒後に、**警告アイコン、メッセージ、「もう一度試す」ボタン**が表示される
+- 「もう一度試す」を押す → **読み込み中に戻り、また失敗する**
+
+```bash
+adb logcat -s LIFECYCLE
+```
+
+で、`[Load] 読み込み開始` と `[Load] 結果 → Error（…）` が、ボタンを押すたびに出ることも、確認してください。
+確認したら、`false` に戻してください。
+
+### 課題3：読み込み中に、別の画面へ移る（5分）※戻すこと
+
+`FakeUserApi.kt` の `LOADING_MILLIS` を、`5000L` に変えます（5秒）。
+
+1. 「一覧」を開く（読み込み中になる）
+2. すぐに「ホーム」へ移って、7秒ほど待つ
+3. ログに、`[Load] 結果` が**出ない**ことを確認する（読み込みが、キャンセルされた）
+
+確認したら、`1500L` に戻してください。
+
+### 課題4：`LazyColumn` が作る行を数える（10分）※戻すこと
+
+1. `FakeUserApi.kt` の `return` を、1000件に変えます。
+
+   ```kotlin
+   return List(1000) { User(it + 1, "ユーザー ${it + 1}", "user${it + 1}@example.com") }
+   ```
+
+2. `UserListScreen.kt` の `UserRow` の先頭に、ログを足します。
+
+   ```kotlin
+   Log.d("LIFECYCLE", "[Row] ${user.id}")
+   ```
+
+3. 一覧を開き、`[Row]` のログを数える → **10行前後**（1000行ではない）
+4. スワイプすると、`[Row]` が、スクロールした分だけ増える
+
+確認したら、両方を元に戻してください。
+
+### 課題5：`when` の網羅性を確かめる（3分）※戻すこと
+
+`UsersUiState.kt` に、種類を1つ足します。
+
+```kotlin
+data object Refreshing : UsersUiState
+```
+
+ビルドすると、`UserListScreen.kt` と `UserListLoader.kt` の `when` が、
+**`'when' expression must be exhaustive`** というエラーになります。
+`else` を使わずに、`Refreshing` の分岐を足すと、エラーが消えます。
+
+確認したら、`Refreshing` を消してください。
+
+### 課題6：回転と、タブ移動を確かめる（5分）
+
+1. 「お気に入り」タブを選ぶ
+2. 端末を回転させる → **「お気に入り」のまま**。ただし、`[Load] 読み込み開始` が、もう一度出る
+3. ホームに移って、一覧に戻る → **「お気に入り」のまま**。ただし、また読み込みが始まる
+
+「選んだタブ」（`rememberSaveable`）は残り、「読み込みの結果」（`remember`）は消えることを、確認してください。
+Phase 3 で、後者を ViewModel に移すと、読み込みのやり直しがなくなります。
+
+---
+
 ## 補足：起動から表示までの流れ
 
 アプリを起動してから、画面が表示されるまでに、何がどの順で実行されるかを説明します。
@@ -1811,21 +2218,23 @@ XrStudyApp
 
 ### 下部ナビをタップしたとき（recomposition）
 
-「一覧」をタップしたときのログです。
+「設定」をタップしたときのログです。
 
 ```
-11:46:09.844  [Compose] XrStudyApp
-11:46:09.881  [Nav] 宛先が変わった → UsersRoute
-11:46:09.910  [Compose] UserListScreen
+11:46:14.481  [Compose] XrStudyApp
+11:46:14.523  [Nav] 宛先が変わった → SettingsRoute
+11:46:14.547  [Compose] SettingsScreen
 ```
 
 ```
 タップ
-  → navigate(UsersRoute) が、NavController のバックスタックを書き換える
+  → navigate(SettingsRoute) が、NavController のバックスタックを書き換える
   → 「今の宛先」が変わったので、それを読んでいる XrStudyApp が再実行される（recomposition）
-  → NavHost が、UsersRoute の画面（UserListScreen）を組み立てる
+  → NavHost が、SettingsRoute の画面（SettingsScreen）を組み立てる
   → 画面が更新される
 ```
+
+（「一覧」は、開くと読み込みが始まり、画面が、読み込み中 → 成功と、続けて作り直されます。Step 5 の 5-8 を参照）
 
 - **`XRStudyTheme` は、再実行されていません。** 入力（`darkTheme`）が変わっていないためです。
   **Compose は、状態が変わった部分だけを作り直します。**
@@ -1927,7 +2336,7 @@ adb logcat -s LIFECYCLE
 
 ### 課題3：回転とホームボタンを比べる（5分）
 
-1. 「一覧」を選んで、端末を回転させる → `onDestroy` から作り直され、`[Compose] UserListScreen` が出る
+1. 「設定」を選んで、端末を回転させる → `onDestroy` から作り直され、`[Compose] SettingsScreen` が出る
 2. ホームボタンで離れて、戻る → `onStart`、`onResume` だけで、`[Compose]` は出ない
 
 **Activity が作り直されるか、されないか**で、Compose の組み立てをやり直すかどうかが決まることを確認してください。
