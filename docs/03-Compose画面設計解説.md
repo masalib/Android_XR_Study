@@ -909,3 +909,214 @@ Android Studio で、次のファイルを開き、右上の「Split」または
 Phase 1 の課題1と同じ結果です。**選択中のタブのような、消えると困る値は `rememberSaveable`** です。
 
 確認したら元に戻してください。
+
+---
+
+## 補足：起動から表示までの流れ
+
+アプリを起動してから、画面が表示されるまでに、何がどの順で実行されるかを説明します。
+**実機（SH-51C・Android 14）のログで、実際の順序を確認した内容**です。
+
+### 全体の流れ
+
+```
+①  アイコンをタップ
+      ↓
+②  Android が AndroidManifest.xml を見る
+    （MAIN + LAUNCHER の Activity ＝ MainActivity）
+      ↓
+③  プロセスを作り、MainActivity を生成
+    起動直後の見た目は XML テーマ（values/themes.xml、ダークなら values-night/themes.xml）
+      ↓
+④  onCreate → onStart → onResume            ← MainActivity.kt
+      ↓
+⑤  画面が Window に取り付けられる
+      ↓
+⑥  Compose が UI を組み立てる                ← XRStudyTheme → XrStudyApp → HomeScreen
+      ↓
+⑦  描画
+```
+
+**⑥（Compose の組み立て）は、`onCreate` の中ではなく、`onResume` の後に始まります。**
+
+### `onCreate` の中で起きること
+
+```kotlin
+override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)      // 親クラスの初期化
+    Log.d("LIFECYCLE", "MainActivity onCreate")
+    enableEdgeToEdge()                      // 画面をバーの裏まで広げる設定
+    setContent {                            // ★ UI を「登録」する
+        XRStudyTheme {
+            XrStudyApp()
+        }
+    }
+    Log.d("LIFECYCLE", "MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ")
+}
+```
+
+**`setContent` は、その場で画面を作るのではなく、「この Composable を表示する」と登録するだけです。**
+登録が済むと、すぐ `onCreate` が終わります。組み立ては、そのあと、画面が Window に取り付けられてから始まります。
+
+### ログで見る、起動から表示まで
+
+```bash
+adb logcat -s LIFECYCLE
+```
+
+アプリを完全に終了してから起動した（コールドスタート）ときの、実際のログです。
+
+```
+10:32:35.127  MainActivity onCreate
+10:32:35.171  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
+10:32:35.179  MainActivity onStart
+10:32:35.182  MainActivity onResume
+10:32:35.357  [Compose] XRStudyTheme
+10:32:35.375  [Compose] XrStudyApp
+10:32:35.579  [Compose] HomeScreen
+```
+
+- **`onCreate END` が、`onResume` より前**に出ています。`setContent` が、登録だけで戻っている証拠です。
+- **`[Compose]` のログは、`onResume` より後**に出ています。組み立てが、そのあとに始まっています。
+- **`XRStudyTheme` → `XrStudyApp` → `HomeScreen`** の順に、外側から内側へ実行されています。
+  `HomeScreen` が少し後に出るのは、`Scaffold` が本文を、サイズを測る段階で組み立てるためです。
+
+### Compose が組み立てる中身
+
+`onResume` の後、`setContent` に渡した中身が、外側から順に実行されます。
+
+```
+XRStudyTheme
+  └ isSystemInDarkTheme() でライト／ダークを決め、MaterialTheme に色と文字を渡す
+     ↓
+XrStudyApp
+  ├ rememberSaveable で selectedIndex を作る（初期値は Home）
+  └ Scaffold
+       ├ topBar：CenterAlignedTopAppBar
+       └ 本文：Column
+            ├ ScreenSwitcher（切り替えのスイッチ）
+            └ when (selected) で、選ばれた画面を呼ぶ
+                 ↓
+              HomeScreen
+                 ├ BannerPlaceholder
+                 ├ SectionHeader
+                 └ notices.forEach { NoticeRow(...) }
+```
+
+### スイッチをタップしたとき（recomposition）
+
+「一覧」をタップしたときのログです。
+
+```
+10:32:40.529  [Compose] XrStudyApp
+10:32:40.556  [Compose] UserListScreen
+```
+
+```
+タップ
+  → onSelect が selectedIndex を書き換える
+  → 状態が変わったので、それを読んでいる XrStudyApp だけが再実行される（recomposition）
+  → when が UserListScreen を選ぶ
+  → 画面が更新される
+```
+
+- **`XRStudyTheme` は、再実行されていません。** 入力（`darkTheme`）が変わっていないためです。
+  **Compose は、状態が変わった部分だけを作り直します。**
+- Phase 1 のカウンターと同じ、「状態が変わると、それを読んでいる部分だけが再描画される」仕組みです。
+
+### 回転したとき
+
+回転して、「一覧」を選んでいた状態のログです。
+
+```
+10:32:50.674  MainActivity onPause
+10:32:50.677  MainActivity onStop
+10:32:50.778  MainActivity onDestroy
+10:32:50.794  MainActivity onCreate
+10:32:50.800  MainActivity onCreate END  ← setContent は登録だけ。組み立てはまだ
+10:32:50.802  MainActivity onStart
+10:32:50.803  MainActivity onResume
+10:32:50.823  [Compose] XRStudyTheme
+10:32:50.824  [Compose] XrStudyApp
+10:32:50.877  [Compose] UserListScreen
+```
+
+Activity が作り直されるので、④からやり直しです（`onDestroy` の後に `onCreate`）。
+それでも、**`HomeScreen` ではなく `UserListScreen` が組み立てられています。**
+`selectedIndex` が `rememberSaveable` に保存されていて、選んでいた画面が復元されたためです。
+
+### ホームボタンで離れて戻ったとき
+
+```
+10:33:37.374  MainActivity onStart
+10:33:37.377  MainActivity onResume
+```
+
+**`[Compose]` のログは出ません。** Activity は破棄されていない（プロセスも生きている）ので、
+Compose の組み立て結果もそのまま残っています。状態が変わっていないので、再実行もされません。
+
+### プログラム側に残しているログ
+
+上のログは、コードに恒久的に入れてあります。タグは `LIFECYCLE` で、`adb logcat -s LIFECYCLE` で、
+Activity のライフサイクル、ViewModel、Compose の組み立てが、**1つの流れで**見られます。
+
+| 場所 | ログ |
+|---|---|
+| `MainActivity.kt` | `MainActivity onCreate` / `onCreate END` / `onStart` / `onResume` / `onPause` / `onStop` / `onDestroy` |
+| `ui/theme/Theme.kt` | `[Compose] XRStudyTheme` |
+| `ui/XrStudyApp.kt` | `[Compose] XrStudyApp` |
+| `ui/ThemeShowcase.kt`、`home/HomeScreen.kt`、`users/UserListScreen.kt`、`settings/SettingsScreen.kt` | `[Compose] 画面名` |
+
+> **⚠️ `@Composable` 関数の本体に、ログを書くときの注意**
+>
+> Phase 1（`02-カウンターアプリ解説.md`）では、「Composable の本体にはログを書かない」と説明しました。
+> **ボタンを押した、という操作の記録**なら、押されたときの `onClick` に書くべきだからです。
+>
+> 今回の `[Compose]` のログは目的が違います。**「この関数が実行された（組み立てられた）」こと自体**を見るためのものです。
+> だから、関数の本体に書いています。
+>
+> - **再組み立てのたびに出ます。** 回数は Compose が決めるので、操作の回数とは一致しません。
+> - 学習用のログです。実務では、リリースのビルドから外すことが多いです。
+
+### iOS との比較
+
+| 観点 | iOS（SwiftUI） | Android（Compose） |
+|---|---|---|
+| 画面の入口 | `App` の `WindowGroup { ContentView() }` | `Activity.onCreate` の `setContent { … }` |
+| 画面を作る単位 | `View` の `body` | `@Composable` 関数 |
+| 状態が変わったときの再実行 | `body` の再評価 | recomposition（再組み立て） |
+| 回転 | ビューは破棄されない | Activity が作り直され、組み立てからやり直し |
+
+---
+
+## 手を動かして確かめる（起動の流れ）
+
+### 課題1：コールドスタートのログを見る（5分）
+
+```bash
+adb logcat -s LIFECYCLE
+```
+
+を流したまま、次を行います。
+
+1. アプリを完全に終了する（`adb shell am force-stop com.example.xrstudy`）
+2. ホーム画面のアイコンからアプリを起動する
+
+上の「全体の流れ」と、ログを見比べてください。
+
+- `onCreate END` が `onResume` より前に出ること
+- `[Compose]` のログが `onResume` より後に出ること
+
+### 課題2：どのログが出るかを見る（5分）
+
+スイッチで「ホーム」→「一覧」→「設定」→「テーマ」と切り替えて、ログを見てください。
+
+- `XrStudyApp` と、**選んだ画面**のログだけが出ます
+- **`XRStudyTheme` は出ません**（状態が変わっていないため）
+
+### 課題3：回転とホームボタンを比べる（5分）
+
+1. 「一覧」を選んで、端末を回転させる → `onDestroy` から作り直され、`[Compose] UserListScreen` が出る
+2. ホームボタンで離れて、戻る → `onStart`、`onResume` だけで、`[Compose]` は出ない
+
+**Activity が作り直されるか、されないか**で、Compose の組み立てをやり直すかどうかが決まることを確認してください。
