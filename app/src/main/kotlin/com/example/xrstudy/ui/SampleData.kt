@@ -23,9 +23,9 @@ object SampleData {
     )
 
     val users = listOf(
-        User(1, "山田 太郎", "taro.yamada@example.com"),
+        User(1, "山田 太郎", "taro.yamada@example.com", isFavorite = true),
         User(2, "佐藤 花子", "hanako.sato@example.com"),
-        User(3, "鈴木 一郎", "ichiro.suzuki@example.com"),
+        User(3, "鈴木 一郎", "ichiro.suzuki@example.com", isFavorite = true),
         User(4, "高橋 美咲", "misaki.takahashi@example.com"),
         User(5, "田中 健太", "kenta.tanaka@example.com"),
     )

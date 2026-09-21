@@ -19,6 +19,9 @@ data class User(
     val id: Int,
     val name: String,
     val email: String,
+    // 引数に初期値（= false）を付けると、書かなくてもよくなる。
+    // 既存の User(1, "…", "…") の書き方は、そのまま使える。
+    val isFavorite: Boolean = false,
 )
 
 /**

@@ -37,7 +37,7 @@ import com.example.xrstudy.ui.navigation.TopLevelDestination
 import com.example.xrstudy.ui.navigation.UsersRoute
 import com.example.xrstudy.ui.settings.SettingsScreen
 import com.example.xrstudy.ui.theme.XRStudyTheme
-import com.example.xrstudy.ui.users.UserListScreen
+import com.example.xrstudy.ui.users.UserListLoader
 
 /**
  * Phase 2 で作るモックアプリの一番外側。
@@ -157,7 +157,8 @@ fun XrStudyApp() {
                     onBannerClick = { banner -> navController.navigate(BannerDetailRoute(banner.id)) },
                 )
             }
-            composable<UsersRoute> { UserListScreen(users = SampleData.users) }
+            // 一覧は、擬似的な読み込み（読み込み中 → 成功／失敗）を行う UserListLoader を表示する。
+            composable<UsersRoute> { UserListLoader() }
             composable<SettingsRoute> { SettingsScreen(appVersion = SampleData.APP_VERSION) }
             composable<ThemeRoute> { ThemeShowcase() }
             composable<BannerDetailRoute> { backStackEntry ->
