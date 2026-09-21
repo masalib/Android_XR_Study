@@ -633,6 +633,73 @@ HomeScreen(notices = emptyList())                       // 空状態
 Phase 4 以降で、通信やデータベースから取ってくるようになったとき、
 画面のコードは変えずに、**データの渡し方だけを変えれば済みます**。
 
+#### `listOf` と `data class` — データの作り方
+
+`SampleData.kt` のデータは、次のように書いています。
+
+```kotlin
+val notices = listOf(
+    Notice(1, "メンテナンスのお知らせ", "2026-09-20"),
+    Notice(2, "新機能を追加しました", "2026-09-18"),
+    Notice(3, "利用規約を更新しました", "2026-09-10"),
+)
+```
+
+これは、「**`Notice` を3つ作って、リストに入れ、`notices` という名前を付けた**」という意味です。
+
+**`Notice` は、データの入れ物の設計図（型）です。** `Models.kt` で定義しています。
+
+```kotlin
+data class Notice(val id: Int, val title: String, val date: String)
+```
+
+**`Notice(1, "…", "…")` は、その設計図から、実際の1件分のデータ（インスタンス）を1つ作る**書き方です。
+
+```kotlin
+Notice(1, "メンテナンスのお知らせ", "2026-09-20")
+       │   │                        └ date
+       │   └ title
+       └ id
+```
+
+引数は、`id`、`title`、`date` の**定義の順番**で渡します。名前を付けて書くこともできます。
+
+```kotlin
+Notice(id = 1, title = "メンテナンスのお知らせ", date = "2026-09-20")
+```
+
+**`listOf` は、リスト（`List`）を作ります。** Swift の配列（`[Notice]`）に近いものです。
+
+| 項目 | 内容 |
+|---|---|
+| 型 | `List<Notice>`（「Notice のリスト」。Kotlin が自動で判断します） |
+| 順番 | 入れた順に並ぶ |
+| 取り出し | `notices[0]`（1つ目）、`notices.size`（個数）、`notices.forEach { … }`（順に処理）、`notices.isEmpty()`（空か） |
+| 変更 | **できません**（`add` や `remove` が無い。読み取り専用） |
+
+- 変更できるリストが必要なときは、`mutableListOf(...)` を使います。
+- 普通の配列（`arrayOf`）もありますが、あまり使いません。**`List` を使う**のが一般的です。
+- リストを足したいときは、`+` で、**新しいリストを作ります**（元のリストは変わりません）。
+  Preview で `listOf(SampleData.longNotice) + SampleData.notices` と書いているのが、この使い方です。
+- `data class` の値も、`val`（変更不可）です。1項目だけ違うコピーが欲しいときは、
+  `notice.copy(title = "新しいタイトル")` と書くと、**別のインスタンス**ができます。
+
+**Swift で書くと：**
+
+```swift
+struct Notice { let id: Int; let title: String; let date: String }
+
+let notices = [
+    Notice(id: 1, title: "メンテナンスのお知らせ", date: "2026-09-20"),
+    Notice(id: 2, title: "新機能を追加しました", date: "2026-09-18"),
+    Notice(id: 3, title: "利用規約を更新しました", date: "2026-09-10"),
+]
+```
+
+- Swift の `struct` に、Kotlin の `data class` が対応します。
+- Swift は、引数名（`id:` など）を必ず書きますが、Kotlin は、書かなくても構いません（順番で決まります）。
+- 最後の項目の後ろの `,` は、あっても構いません。項目を足すときに、差分が小さくなるので、付けることが多いです。
+
 ### 2-3. 一覧の1行は `ListItem`
 
 ```kotlin
