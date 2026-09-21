@@ -1,46 +1,51 @@
 package com.example.xrstudy.ui
 
 import android.util.Log
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.xrstudy.ui.home.HomeScreen
+import com.example.xrstudy.ui.navigation.HomeRoute
+import com.example.xrstudy.ui.navigation.SettingsRoute
+import com.example.xrstudy.ui.navigation.ThemeRoute
+import com.example.xrstudy.ui.navigation.TopLevelDestination
+import com.example.xrstudy.ui.navigation.UsersRoute
 import com.example.xrstudy.ui.settings.SettingsScreen
 import com.example.xrstudy.ui.theme.XRStudyTheme
 import com.example.xrstudy.ui.users.UserListScreen
 
 /**
- * 今のところ表示できる画面。
- * 画面の切り替えは、Step 3 で NavigationBar + NavHost に置き換える（ここは仮のもの）。
- */
-private enum class Screen(val label: String) {
-    Theme("テーマ"),
-    Home("ホーム"),
-    Users("一覧"),
-    Settings("設定"),
-}
-
-/**
  * Phase 2 で作るモックアプリの一番外側。
  *
- * Scaffold は「Top App Bar・下部ナビ・本文」を並べる骨組みです。
- * SwiftUI の NavigationStack + TabView の外枠に近い役割です。
- * 今は Top App Bar と本文だけで、下部ナビゲーションは Step 3 で足します。
+ * Scaffold が「Top App Bar・下部ナビ・本文」を並べ、
+ * 本文の部分を NavHost が「今の宛先の画面」に差し替える。
+ *
+ *   Scaffold
+ *     ├ topBar    ：画面ごとにタイトルとボタンが変わる
+ *     ├ bottomBar ：下部ナビゲーション（主要な3画面のときだけ表示）
+ *     └ 本文      ：NavHost（宛先ごとの画面を表示する）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,68 +53,119 @@ fun XrStudyApp() {
     // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
     // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
     Log.d("LIFECYCLE", "[Compose] XrStudyApp")
-    // ★ 選択中の画面を rememberSaveable で持つ。回転しても、選んだ画面が残る（Phase 1 の実践）。
-    // enum をそのまま保存するのではなく、Int（位置）で持つのが簡単。
-    var selectedIndex by rememberSaveable { mutableIntStateOf(Screen.Home.ordinal) }
-    val selected = Screen.entries[selectedIndex]
+
+    // NavController は「今どの画面にいるか」「どの順で来たか（バックスタック）」を持つ。
+    // rememberNavController は、回転しても状態（バックスタック）を保つ。
+    val navController = rememberNavController()
+
+    // ★ 今の宛先は、NavController から取る。
+    // 「選択中のタブ」を別の変数（rememberSaveable など）で持たない。
+    // 別に持つと、戻るボタンで前の画面に戻ったとき、タブの表示がずれる。
+    // 宛先から求めれば、どの操作で画面が変わっても、常に一致する。
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = backStackEntry?.destination
+
+    // 今の宛先が、トップレベルの3画面のどれか（どれでもなければ null）
+    val selectedTopLevel = TopLevelDestination.entries.firstOrNull { top ->
+        currentDestination?.hierarchy?.any { it.hasRoute(top.route::class) } == true
+    }
+    val isThemeScreen = currentDestination?.hasRoute(ThemeRoute::class) == true
+
+    // ⚠️ 起動・回転の直後、最初の組み立てでは currentDestination が null（宛先がまだ決まっていない）。
+    // 約0.2秒後に、宛先が入って再組み立てされる（[Nav] のログで確認できる）。
+    // その間に「selectedTopLevel != null のときだけ下部ナビを出す」と書くと、
+    // 下部ナビが遅れて現れ、本文の余白が動いて、画面がガタつく。
+    // そのため、バーの表示は「テーマの確認画面ではない」で決める（null の間も表示される）。
+    val showTopLevelBars = !isThemeScreen
+
+    // 画面が切り替わるたびにログを出す。戻るボタンの動きを確認するためのもの。
+    LaunchedEffect(currentDestination) {
+        Log.d("LIFECYCLE", "[Nav] 宛先が変わった → ${currentDestination?.route}")
+    }
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(title = { Text("XR Study") })
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        when {
+                            selectedTopLevel != null -> selectedTopLevel.label
+                            isThemeScreen -> "テーマの確認"
+                            else -> "XR Study"
+                        }
+                    )
+                },
+                // 「戻る」矢印は、トップレベルではない画面（テーマの確認）のときだけ出す。
+                navigationIcon = {
+                    if (isThemeScreen) {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "戻る")
+                        }
+                    }
+                },
+                actions = {
+                    if (showTopLevelBars) {
+                        IconButton(onClick = { navController.navigate(ThemeRoute) }) {
+                            Icon(Icons.Filled.Info, contentDescription = "テーマの確認画面を開く")
+                        }
+                    }
+                },
+            )
+        },
+        bottomBar = {
+            // 下部ナビは、主要な3画面のときだけ表示する（テーマの確認画面では隠す）。
+            if (showTopLevelBars) {
+                NavigationBar {
+                    TopLevelDestination.entries.forEach { top ->
+                        NavigationBarItem(
+                            selected = top == selectedTopLevel,
+                            onClick = { navController.navigateToTopLevel(top) },
+                            // 文字（label）がある場合、アイコンには説明を付けない
+                            // （付けると、読み上げで同じ内容が2回読まれる）。
+                            icon = { Icon(top.icon, contentDescription = null) },
+                            label = { Text(top.label) },
+                        )
+                    }
+                }
+            }
         }
     ) { innerPadding ->
         // ★ innerPadding は必ず本文に渡す。
-        // Top App Bar やステータスバーの下に本文が潜り込まないよう、
-        // Scaffold が「ここから下に置いてね」という余白を教えてくれている。
-        Column(modifier = Modifier.padding(innerPadding)) {
-            ScreenSwitcher(
-                selectedIndex = selectedIndex,
-                onSelect = { selectedIndex = it },
-            )
-
-            // 選択中の画面を表示する。
-            // Kotlin の when は、enum の全ての値を書かないとコンパイルエラーになる
-            // （画面を足したときに、書き忘れに気づける）。
-            // 画面には、データを引数で渡す。Modifier.weight(1f) で、残りの高さを使い切る。
-            when (selected) {
-                Screen.Theme -> ThemeShowcase(modifier = Modifier.weight(1f))
-                Screen.Home -> HomeScreen(
-                    notices = SampleData.notices,
-                    modifier = Modifier.weight(1f)
-                )
-                Screen.Users -> UserListScreen(
-                    users = SampleData.users,
-                    modifier = Modifier.weight(1f)
-                )
-                Screen.Settings -> SettingsScreen(
-                    appVersion = SampleData.APP_VERSION,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+        // Top App Bar・下部ナビ・ステータスバーの裏に本文が潜り込まないよう、
+        // Scaffold が「ここに置いてね」という余白を教えてくれている。
+        NavHost(
+            navController = navController,
+            startDestination = HomeRoute,
+            modifier = Modifier.padding(innerPadding),
+        ) {
+            // 宛先（ルート）ごとに、表示する画面を登録する。
+            composable<HomeRoute> { HomeScreen(notices = SampleData.notices) }
+            composable<UsersRoute> { UserListScreen(users = SampleData.users) }
+            composable<SettingsRoute> { SettingsScreen(appVersion = SampleData.APP_VERSION) }
+            composable<ThemeRoute> { ThemeShowcase() }
         }
     }
 }
 
-/** 画面を切り替える仮のスイッチ。Step 3 で、下部ナビゲーションに置き換わる。 */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ScreenSwitcher(
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-) {
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Screen.entries.forEachIndexed { index, screen ->
-            SegmentedButton(
-                selected = index == selectedIndex,
-                onClick = { onSelect(index) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = Screen.entries.size),
-                label = { Text(screen.label) },
-            )
-        }
+/**
+ * 下部ナビのタブを押したときの移動。
+ *
+ * 3つの指定は、下部ナビゲーションの決まった書き方（公式の推奨）。
+ *
+ *  - popUpTo(最初の画面) { saveState = true }
+ *      タブを移るたびに、バックスタックが積み上がらないようにする。
+ *      積み上げると、戻るボタンで、押してきたタブを何度も逆にたどることになる。
+ *      抜ける画面の状態（スクロール位置など）は saveState で保存しておく。
+ *  - launchSingleTop = true
+ *      すでに表示中のタブをもう一度押しても、同じ画面を重ねて作らない。
+ *  - restoreState = true
+ *      前に開いたことのあるタブに戻ったとき、保存しておいた状態を復元する。
+ */
+private fun NavController.navigateToTopLevel(destination: TopLevelDestination) {
+    navigate(destination.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
 
