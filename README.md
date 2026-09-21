@@ -48,7 +48,8 @@ git checkout phase-0-complete    # その時点の状態を見る
 | Compose BOM | 2026.08.00 |
 | compileSdk / targetSdk | 37 |
 | minSdk | 24 |
-| JDK | Temurin 21 (arm64) |
+| JDK（Gradle デーモン用） | 25（`gradle/gradle-daemon-jvm.properties` で指定。無ければ自動でダウンロードされる） |
+| 生成するバイトコード | Java / Kotlin とも 17 向け（`app/build.gradle.kts` で固定） |
 
 動作確認端末：SHARP SH-51C（Android 14 / API 34）
 
