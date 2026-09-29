@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -154,6 +155,10 @@ private fun UserRow(user: User) {
  * 名前の1文字目を、丸の中に表示する（画像の代わり）。
  * `firstOrNull()` を使うのは、名前が空文字でもアプリが落ちないようにするため。
  * （`first()` は空だと例外になる）
+ *
+ * `clearAndSetSemantics {}` は、TalkBack の読み上げから外す指定。
+ * 外さないと、「山、山田 太郎、…」のように、1文字目が余分に読まれる。
+ * 名前は、隣の文字で読み上げられるので、この丸は飾りとして扱う。
  */
 @Composable
 private fun Avatar(initial: String) {
@@ -161,7 +166,9 @@ private fun Avatar(initial: String) {
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        modifier = Modifier.size(40.dp)
+        modifier = Modifier
+            .size(40.dp)
+            .clearAndSetSemantics {}
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

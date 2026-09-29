@@ -17,8 +17,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import android.util.Log
+import android.graphics.Color as AndroidColor
+import androidx.activity.SystemBarStyle
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.example.xrstudy.ui.XrStudyApp
+import com.example.xrstudy.ui.theme.ThemeMode
 import com.example.xrstudy.ui.theme.XRStudyTheme
+import com.example.xrstudy.ui.theme.isDark
 
 /**
  * Activity は iOS の UIViewController に相当します。
@@ -51,6 +60,7 @@ class MainActivity : ComponentActivity() {
         // Android 15 以降は targetSdk 35 以上で強制されるが、
         // 呼んでおくと、ライト／ダークに合わせてバーの文字色も自動で切り替わる。
         // 端に隠れないようにする余白は、Scaffold の innerPadding が面倒を見てくれる。
+        // （バーの文字色を、アプリで選んだテーマに合わせ直すのは、setContent の中の DisposableEffect）
         enableEdgeToEdge()
 
         // setContent が SwiftUI の body にあたる部分。
@@ -58,8 +68,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Phase 2: テーマで包み、Scaffold の骨組みを表示する。
             // （Phase 1 の CounterScreen は、phase-1-complete タグで見られる）
-            XRStudyTheme {
-                XrStudyApp()
+
+            // ★ テーマの選び方（端末の設定／ライト／ダーク）は、テーマ（XRStudyTheme）より上で持つ。
+            // 下の画面（設定画面）で持つと、XRStudyTheme に渡せない。
+            // rememberSaveable なので、回転しても残る。ただし、アプリを終了すると消える
+            // （終了しても残すのは DataStore の役目。Phase 4 で扱う）。
+            var themeMode by rememberSaveable { mutableStateOf(ThemeMode.System) }
+            val darkTheme = themeMode.isDark()
+
+            // ステータスバー・ナビゲーションバーのアイコンの色を、アプリのテーマに合わせる。
+            // 最初の enableEdgeToEdge() は「端末の設定」で色を決めるため、
+            // アプリだけダークにすると、暗い背景に暗いアイコンが並んで、見えなくなる。
+            // darkTheme が変わるたびに、呼び直す。
+            DisposableEffect(darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(
+                        AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT,
+                    ) { darkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(LightScrim, DarkScrim) { darkTheme },
+                )
+                onDispose {}
+            }
+
+            XRStudyTheme(darkTheme = darkTheme) {
+                XrStudyApp(
+                    themeMode = themeMode,
+                    onThemeModeChange = { themeMode = it },
+                )
             }
         }
 
@@ -77,6 +112,11 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() { super.onDestroy(); Log.d("LIFECYCLE", "MainActivity onDestroy") }
 
 }
+
+// 3ボタンナビゲーションのときに、ナビゲーションバーの後ろに敷く半透明の膜。
+// enableEdgeToEdge() の初期値と同じ色（ライト：白 90%、ダーク：黒っぽい灰色 50%）。
+private val LightScrim = AndroidColor.argb(0xe6, 0xFF, 0xFF, 0xFF)
+private val DarkScrim = AndroidColor.argb(0x80, 0x1b, 0x1b, 0x1b)
 
 /**
  * @Composable が付いた関数が UI の部品になります。

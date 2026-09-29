@@ -54,6 +54,11 @@ val LightColorScheme = lightColorScheme(
     surfaceContainer = Color(0xFFE9EFF0),
     surfaceContainerHigh = Color(0xFFE3E9EA),
     surfaceContainerHighest = Color(0xFFDDE4E5),
+    // Snackbar の色（背景・文字・ボタン）。周りと逆の明るさで、浮き上がって見せる。
+    // 指定しないと、「元に戻す」のボタンが、Material の初期値（紫）になる。
+    inverseSurface = Color(0xFF2E3132),
+    inverseOnSurface = Color(0xFFEFF1F1),
+    inversePrimary = Color(0xFF4FD8EB),
 )
 
 val DarkColorScheme = darkColorScheme(
@@ -82,4 +87,7 @@ val DarkColorScheme = darkColorScheme(
     surfaceContainer = Color(0xFF1D2021),
     surfaceContainerHigh = Color(0xFF272B2B),
     surfaceContainerHighest = Color(0xFF323536),
+    inverseSurface = Color(0xFFE1E3E3),
+    inverseOnSurface = Color(0xFF2E3132),
+    inversePrimary = Color(0xFF006874),
 )
