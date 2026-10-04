@@ -39,14 +39,16 @@ import com.example.xrstudy.ui.theme.ThemeMode
 /**
  * 設定画面。
  *
- * 設定の値（themeMode、notificationsEnabled）と、変わったときの処理（on〜Change）を、
+ * 設定の値（loggedInEmail、themeMode、notificationsEnabled）と、変わったときの処理（on〜）を、
  * 引数で受け取るだけ。値を持っているのは、親（MainActivity と XrStudyApp）。
  *
- * この画面が自分で持つのは、「テーマのダイアログを開いているか」だけ。
+ * この画面が自分で持つのは、「ダイアログを開いているか」だけ。
  * これは、この画面の中だけで使う、見た目の状態だから。
  */
 @Composable
 fun SettingsScreen(
+    loggedInEmail: String,
+    onLogout: () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     notificationsEnabled: Boolean,
@@ -60,6 +62,7 @@ fun SettingsScreen(
 
     // ダイアログを開いているか。rememberSaveable なので、開いたまま回転しても、開いたまま。
     var showThemeDialog by rememberSaveable { mutableStateOf(false) }
+    var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -68,7 +71,23 @@ fun SettingsScreen(
             .padding(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        SectionHeader("表示")
+        SectionHeader("アカウント")
+        ListItem(
+            headlineContent = { Text("ログイン中") },
+            supportingContent = { Text(loggedInEmail) },
+        )
+        // ログアウトは、押したらすぐではなく、確認のダイアログを出す。
+        // 押し間違えると、ログイン画面に戻され、もう一度入力し直すことになるため。
+        ListItem(
+            headlineContent = { Text("ログアウト", color = MaterialTheme.colorScheme.error) },
+            modifier = Modifier.clickable(
+                onClickLabel = "ログアウトする",
+                role = Role.Button,
+                onClick = { showLogoutDialog = true },
+            ),
+        )
+
+        SectionHeader("表示", modifier = Modifier.padding(top = 8.dp))
         // 押すと、ダイアログが開く行。今の選択を、2行目に表示する。
         ListItem(
             headlineContent = { Text("テーマ") },
@@ -109,6 +128,40 @@ fun SettingsScreen(
             onDismiss = { showThemeDialog = false },
         )
     }
+
+    if (showLogoutDialog) {
+        LogoutDialog(
+            onConfirm = {
+                showLogoutDialog = false
+                onLogout()
+            },
+            onDismiss = { showLogoutDialog = false },
+        )
+    }
+}
+
+/**
+ * ログアウトの確認ダイアログ。
+ *
+ * ボタンの文字は「OK」ではなく、「ログアウト」にする。
+ * 「OK」だと、題名を読まないと、何が起きるか分からない。ボタンだけ読んでも分かる文字にする。
+ */
+@Composable
+private fun LogoutDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("ログアウトしますか？") },
+        text = { Text("もう一度使うには、ログインし直す必要があります。") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text("ログアウト") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("キャンセル") }
+        },
+    )
 }
 
 /**
@@ -218,6 +271,8 @@ private fun ThemeOptionRow(
 private fun SettingsScreenPreview() {
     PreviewFrame {
         SettingsScreen(
+            loggedInEmail = "demo@example.com",
+            onLogout = {},
             themeMode = ThemeMode.System,
             onThemeModeChange = {},
             notificationsEnabled = true,
@@ -253,6 +308,8 @@ private fun SettingsScreenLongTextPreview() {
 private fun SettingsScreenLargeFontPreview() {
     PreviewFrame {
         SettingsScreen(
+            loggedInEmail = "demo@example.com",
+            onLogout = {},
             themeMode = ThemeMode.System,
             onThemeModeChange = {},
             notificationsEnabled = true,
@@ -267,6 +324,8 @@ private fun SettingsScreenLargeFontPreview() {
 private fun SettingsScreenDarkPreview() {
     PreviewFrame(darkTheme = true) {
         SettingsScreen(
+            loggedInEmail = "demo@example.com",
+            onLogout = {},
             themeMode = ThemeMode.Dark,
             onThemeModeChange = {},
             notificationsEnabled = false,
@@ -280,4 +339,10 @@ private fun SettingsScreenDarkPreview() {
 @Composable
 private fun ThemeDialogPreview() {
     PreviewFrame { ThemeDialog(current = ThemeMode.System, onConfirm = {}, onDismiss = {}) }
+}
+
+@Preview(name = "ログアウトのダイアログ", showBackground = true)
+@Composable
+private fun LogoutDialogPreview() {
+    PreviewFrame { LogoutDialog(onConfirm = {}, onDismiss = {}) }
 }

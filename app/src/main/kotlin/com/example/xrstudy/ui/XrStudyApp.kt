@@ -1,6 +1,8 @@
 package com.example.xrstudy.ui
 
 import android.util.Log
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,6 +40,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.xrstudy.ui.home.BannerDetailScreen
 import com.example.xrstudy.ui.home.HomeScreen
+import com.example.xrstudy.ui.login.LoginScreen
 import com.example.xrstudy.ui.navigation.BannerDetailRoute
 import com.example.xrstudy.ui.navigation.HomeRoute
 import com.example.xrstudy.ui.navigation.SettingsRoute
@@ -53,6 +56,76 @@ import kotlinx.coroutines.launch
 /**
  * Phase 2 で作るモックアプリの一番外側。
  *
+ * ログインしているかどうかで、表示する画面そのものを切り替える。
+ *
+ *   未ログイン → LoginScaffold（ログイン画面だけ。下部ナビは無い）
+ *   ログイン済み → MainScaffold（ホーム・一覧・設定）
+ *
+ * @param themeMode 今のテーマの選び方。持っているのは MainActivity（テーマより上で持つ必要がある）。
+ * @param onThemeModeChange 設定画面でテーマが選ばれたときに呼ぶ。
+ */
+@Composable
+fun XrStudyApp(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+) {
+    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
+    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
+    Log.d("LIFECYCLE", "[Compose] XrStudyApp")
+
+    // ★ ログインしているメールアドレス。null なら、未ログイン。
+    // 「ログインしているか（Boolean）」と「誰か（String）」を別に持つと、
+    // 「ログイン済みなのに、メールアドレスが無い」という、ありえない組み合わせが作れてしまう。
+    // null かどうかで表せば、常に一致する（UsersUiState を型で表したのと同じ考え方）。
+    //
+    // ⚠️ rememberSaveable なので、回転しても残るが、アプリを終了するとログアウトする。
+    // ログイン状態の保持は、Phase 6 で認証 SDK（Firebase Authentication）に任せる。
+    var loggedInEmail by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // ★ ログイン画面は、NavHost の宛先にせず、if で切り替える。
+    // 宛先にすると、ログイン後に「戻る」を押したとき、ログイン画面に戻れてしまう
+    // （バックスタックから消す処理を、自分で書く必要がある）。
+    // if なら、ログイン画面は組み立てから外れるので、戻る先にそもそも存在しない。
+    // ログアウトしたときも、MainScaffold ごと外れるので、開いていた画面やタブの状態も消える。
+    val email = loggedInEmail
+    if (email == null) {
+        LoginScaffold(onLoginSuccess = { loggedInEmail = it })
+    } else {
+        MainScaffold(
+            loggedInEmail = email,
+            onLogout = { loggedInEmail = null },
+            themeMode = themeMode,
+            onThemeModeChange = onThemeModeChange,
+        )
+    }
+}
+
+/**
+ * 未ログインのときの画面。Top App Bar と、ログイン画面だけ。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LoginScaffold(onLoginSuccess: (email: String) -> Unit) {
+    Scaffold(
+        topBar = { CenterAlignedTopAppBar(title = { Text("ログイン") }) },
+    ) { innerPadding ->
+        LoginScreen(
+            onLoginSuccess = onLoginSuccess,
+            modifier = Modifier
+                .padding(innerPadding)
+                // ★ キーボードの分だけ、下に余白を空ける。
+                // enableEdgeToEdge() を呼んでいるので、キーボードが出ても、画面は縮まない。
+                // imePadding が無いと、下の入力欄やボタンが、キーボードの裏に隠れる。
+                // consumeWindowInsets は、innerPadding で空けたナビゲーションバーの分を、二重に空けないための指定。
+                .consumeWindowInsets(innerPadding)
+                .imePadding(),
+        )
+    }
+}
+
+/**
+ * ログイン済みのときの画面。
+ *
  * Scaffold が「Top App Bar・下部ナビ・本文」を並べ、
  * 本文の部分を NavHost が「今の宛先の画面」に差し替える。
  *
@@ -62,18 +135,20 @@ import kotlinx.coroutines.launch
  *     ├ snackbarHost：操作の結果を、画面の下に短く表示する（Snackbar）
  *     └ 本文      ：NavHost（宛先ごとの画面を表示する）
  *
- * @param themeMode 今のテーマの選び方。持っているのは MainActivity（テーマより上で持つ必要がある）。
- * @param onThemeModeChange 設定画面でテーマが選ばれたときに呼ぶ。
+ * @param loggedInEmail ログインしているメールアドレス。設定画面に表示する。
+ * @param onLogout 設定画面でログアウトしたときに呼ぶ。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun XrStudyApp(
+private fun MainScaffold(
+    loggedInEmail: String,
+    onLogout: () -> Unit,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
 ) {
-    // 学習用ログ：この関数が実行された（＝組み立て・再組み立てされた）ことを確認する。
-    // docs/03「起動から表示までの流れ」を、adb logcat -s LIFECYCLE で見るためのもの。
-    Log.d("LIFECYCLE", "[Compose] XrStudyApp")
+    // 学習用ログ。タブを切り替えたときに再実行されるのは、XrStudyApp ではなく、
+    // 「今の宛先」を読んでいる、この MainScaffold（docs/03 の Step 7 で、XrStudyApp から分けた）。
+    Log.d("LIFECYCLE", "[Compose] MainScaffold")
 
     // NavController は「今どの画面にいるか」「どの順で来たか（バックスタック）」を持つ。
     // rememberNavController は、回転しても状態（バックスタック）を保つ。
@@ -195,6 +270,8 @@ fun XrStudyApp(
             composable<UsersRoute> { UserListLoader() }
             composable<SettingsRoute> {
                 SettingsScreen(
+                    loggedInEmail = loggedInEmail,
+                    onLogout = onLogout,
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     notificationsEnabled = notificationsEnabled,
@@ -257,14 +334,35 @@ private fun NavController.navigateToTopLevel(destination: TopLevelDestination) {
 
 // @Preview は、ビルドせずに Android Studio 上で見た目を確認する仕組み。
 // ライトとダークを並べて確認するため、darkTheme を直接渡している。
+// XrStudyApp は、最初はログイン画面になるので、ログイン後の MainScaffold を直接表示する。
 @Preview(name = "ライト", showBackground = true)
 @Composable
 private fun XrStudyAppLightPreview() {
-    XRStudyTheme(darkTheme = false) { XrStudyApp(themeMode = ThemeMode.Light, onThemeModeChange = {}) }
+    XRStudyTheme(darkTheme = false) {
+        MainScaffold(
+            loggedInEmail = "demo@example.com",
+            onLogout = {},
+            themeMode = ThemeMode.Light,
+            onThemeModeChange = {},
+        )
+    }
 }
 
 @Preview(name = "ダーク", showBackground = true)
 @Composable
 private fun XrStudyAppDarkPreview() {
-    XRStudyTheme(darkTheme = true) { XrStudyApp(themeMode = ThemeMode.Dark, onThemeModeChange = {}) }
+    XRStudyTheme(darkTheme = true) {
+        MainScaffold(
+            loggedInEmail = "demo@example.com",
+            onLogout = {},
+            themeMode = ThemeMode.Dark,
+            onThemeModeChange = {},
+        )
+    }
+}
+
+@Preview(name = "ログイン前", showBackground = true)
+@Composable
+private fun XrStudyAppLoginPreview() {
+    XRStudyTheme(darkTheme = false) { LoginScaffold(onLoginSuccess = {}) }
 }
