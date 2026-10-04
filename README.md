@@ -12,8 +12,8 @@ iOS / PHP の開発経験はあるが Android は未経験、という状態か�
 |---|---|---|
 | **0** | 手持ち端末の確認・開発環境の構築 | ✅ 完了 |
 | **1** | Android の最低ライン（Kotlin / Compose / ライフサイクル / 状態管理） | ✅ 完了 |
-| **2** | Compose による画面設計・ナビゲーション | 🔄 進行中 |
-| 3 | MVVM を使った画面の状態管理 | ⏳ |
+| **2** | Compose による画面設計・ナビゲーション | ✅ 完了 |
+| **3** | MVVM を使った画面の状態管理 | 🔄 進行中 |
 | 4 | データ保存と内部 DB の CRUD（DataStore / Room） | ⏳ |
 | 5 | API を使った CRUD | ⏳ |
 | 6 | ログイン・認証 | ⏳ |
@@ -35,6 +35,8 @@ git checkout phase-0-complete    # その時点の状態を見る
   — プロジェクトの全ファイルを iOS の知識と対応させながら1つずつ解説
 - [カウンターアプリ 完全解説 — Android の状態管理](docs/02-カウンターアプリ解説.md)
   — `remember` / `rememberSaveable` / `ViewModel` の違いを実測値つきで解説
+- [Compose 画面設計 — Phase 2 解説](docs/03-Compose画面設計解説.md)
+  — テーマ、静的な3画面、下部ナビゲーションと画面遷移（`NavHost`）、横スクロールバナー、タブ・一覧・状態ごとの表示、設定（ダイアログ・Snackbar・アクセシビリティ）、入力フォームとログイン画面、起動から表示までの流れ
 
 ## 開発環境
 
@@ -46,7 +48,8 @@ git checkout phase-0-complete    # その時点の状態を見る
 | Compose BOM | 2026.08.00 |
 | compileSdk / targetSdk | 37 |
 | minSdk | 24 |
-| JDK | Temurin 21 (arm64) |
+| JDK（Gradle デーモン用） | 25（`gradle/gradle-daemon-jvm.properties` で指定。無ければ自動でダウンロードされる） |
+| 生成するバイトコード | Java / Kotlin とも 17 向け（`app/build.gradle.kts` で固定） |
 
 動作確認端末：SHARP SH-51C（Android 14 / API 34）
 

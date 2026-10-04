@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  学習用に自作したバナー画像（ベクター画像）。外部の素材は使っていない。
+  ベクター画像は、点と線で描く画像で、拡大しても粗くならず、ファイルも小さい。
+  Compose からは painterResource(R.drawable.banner_green) で読み込む。
+  （PNG や JPG などの写真は、同じ書き方で読み込める）
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp"
+    android:height="160dp"
+    android:viewportWidth="360"
+    android:viewportHeight="160">
+
+    <!-- 背景：左上から右下へ、色が変わるグラデーション -->
+    <path android:pathData="M0,0h360v160h-360z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="360"
+                android:endY="160">
+                <item android:offset="0" android:color="#FF0F766E" />
+                <item android:offset="1" android:color="#FF34D399" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 飾りの円（白の半透明）。#1F は、透明度が約12%（アルファ値） -->
+    <path
+        android:fillColor="#1FFFFFFF"
+        android:pathData="M210,30a90,90 0 1,0 180,0a90,90 0 1,0 -180,0" />
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M-10,150a70,70 0 1,0 140,0a70,70 0 1,0 -140,0" />
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M250,110a24,24 0 1,0 48,0a24,24 0 1,0 -48,0" />
+</vector>

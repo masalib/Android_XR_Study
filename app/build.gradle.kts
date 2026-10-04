@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.android.application)
     // Compose コンパイラプラグインだけは今も明示的に必要
     alias(libs.plugins.kotlin.compose)
+    // 型安全なルート（@Serializable）のために必要。Kotlin と同じバージョンにする
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -68,6 +70,10 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)   // アイコン（BOM がバージョンを決める）
+
+    // 画面遷移（NavHost / NavController）
+    implementation(libs.androidx.navigation.compose)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

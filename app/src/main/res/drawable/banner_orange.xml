@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 学習用に自作したバナー画像（ベクター画像）。外部の素材は使っていない。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp"
+    android:height="160dp"
+    android:viewportWidth="360"
+    android:viewportHeight="160">
+
+    <path android:pathData="M0,0h360v160h-360z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="360"
+                android:endY="0">
+                <item android:offset="0" android:color="#FFB45309" />
+                <item android:offset="1" android:color="#FFFBBF24" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 飾りの円（太陽のイメージ） -->
+    <path
+        android:fillColor="#33FFFFFF"
+        android:pathData="M240,60a70,70 0 1,0 140,0a70,70 0 1,0 -140,0" />
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M270,60a40,40 0 1,0 80,0a40,40 0 1,0 -80,0" />
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M20,140a30,30 0 1,0 60,0a30,30 0 1,0 -60,0" />
+</vector>

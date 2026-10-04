@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      ダークモードのときだけ、values/themes.xml の代わりにこのファイルが使われる。
+      フォルダ名の「-night」が条件（リソース修飾子）で、Android が端末の設定を見て
+      自動で選ぶ。回転で layout-land が選ばれるのと同じ仕組み。
+
+      Compose 側のテーマ（XRStudyTheme）とは別に、アプリの起動直後、Compose が描き始める前の
+      「ウィンドウの背景」と「ステータスバーの文字色」を決めるために必要。
+      これが無いと、ダークモードでも起動直後だけ、ライト用の白い背景が見えることがある。
+    -->
+    <style name="Theme.XRStudy" parent="android:Theme.Material.NoActionBar" />
+</resources>
